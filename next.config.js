@@ -1,3 +1,5 @@
+const path = require('path')
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Enable standalone output for Docker deployment
@@ -6,6 +8,15 @@ const nextConfig = {
   // Disable ESLint during build to avoid quote escape errors
   eslint: {
     ignoreDuringBuilds: true,
+  },
+  
+  // Ensure webpack resolves path aliases correctly
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': path.resolve(__dirname, './src'),
+    }
+    return config
   },
   
   images: {
