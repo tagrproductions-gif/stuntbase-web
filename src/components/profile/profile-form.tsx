@@ -141,8 +141,16 @@ export function ProfileForm({
 
       await onSubmit({
         profile: normalizedData,
-        skills: databaseSkills,
-        certifications: databaseCertifications,
+        skills: databaseSkills.map(skill => ({
+          skill_id: skill.skill_id,
+          proficiency_level: skill.proficiency_level as 'beginner' | 'intermediate' | 'advanced' | 'expert'
+        })),
+        certifications: databaseCertifications.map(cert => ({
+          certification_id: cert.certification_id,
+          date_obtained: cert.date_obtained || undefined,
+          certification_number: cert.certification_number || undefined,
+          expiry_date: cert.expiry_date || undefined
+        })),
         photos,
         resume,
         existingPhotos,

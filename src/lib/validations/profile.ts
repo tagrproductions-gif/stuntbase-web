@@ -37,7 +37,7 @@ export const profileSchema = z.object({
   }),
   hair_color: z.union([z.string(), z.null()]).optional().transform(val => val === null ? '' : val || ''),
   eye_color: z.union([z.string(), z.null()]).optional().transform(val => val === null ? '' : val || ''),
-  ethnicity: z.union([z.enum(ALL_ETHNIC_APPEARANCE_VALUES), z.string(), z.null()]).optional().transform(val => val === null ? '' : val || ''),
+  ethnicity: z.union([z.enum(ALL_ETHNIC_APPEARANCE_VALUES as [string, ...string[]]), z.string(), z.null()]).optional().transform(val => val === null ? '' : val || ''),
   gender: z.union([z.string(), z.null()]).optional().transform(val => val === null ? '' : val || ''),
   
   // Professional Information

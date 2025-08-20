@@ -138,14 +138,14 @@ export async function queryWithStructuredFilters(parsedQuery: ParsedQuery): Prom
         // Check if profile has any of the requested skills OR related skills
         const hasSkill = parsedQuery.skills.some(requestedSkill => {
           // Direct match
-          const directMatch = profileSkills.some(profileSkill => 
+          const directMatch = profileSkills.some((profileSkill: any) => 
             profileSkill.includes(requestedSkill.toLowerCase()) || 
             requestedSkill.toLowerCase().includes(profileSkill)
           )
           
           // Related skill match
           const relatedMatch = relatedSkills[requestedSkill]?.some(relatedSkill =>
-            profileSkills.some(profileSkill => 
+            profileSkills.some((profileSkill: any) => 
               profileSkill.includes(relatedSkill.toLowerCase()) ||
               relatedSkill.toLowerCase().includes(profileSkill)
             )

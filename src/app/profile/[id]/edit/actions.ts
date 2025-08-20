@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { ProfileData, SkillData, CertificationData } from '@/lib/validations/profile'
-import { uploadResumeServer } from '@/lib/supabase/resumes'
+import { uploadResume } from '@/lib/supabase/resumes'
 import { redirect } from 'next/navigation'
 
 export async function uploadPhotoAction(formData: FormData): Promise<{ url: string | null; error: any }> {

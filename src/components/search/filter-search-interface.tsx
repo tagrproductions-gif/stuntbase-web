@@ -10,6 +10,34 @@ import { RangeSlider } from '@/components/ui/range-slider'
 import { ProfileCard } from './profile-card'
 import { ChevronLeft, ChevronRight, Loader2, MapPin, Users, Filter, ChevronDown } from 'lucide-react'
 import { SearchFilters, SearchQuery } from '@/lib/search/search-utils'
+import { ALL_LOCATIONS, TIER1_MARKETS, TIER2_MARKETS } from '@/lib/constants/locations'
+import { ETHNIC_APPEARANCE_OPTIONS } from '@/lib/constants/ethnic-appearance'
+
+// Constants for filter options
+const genderOptions = [
+  { label: 'Male', value: 'Male' },
+  { label: 'Female', value: 'Female' },
+  { label: 'Non-binary', value: 'Non-binary' },
+  { label: 'Other', value: 'Other' }
+]
+
+const heightRanges = [
+  { label: "4'6\" - 5'0\"", min: 54, max: 60 },
+  { label: "5'0\" - 5'4\"", min: 60, max: 64 },
+  { label: "5'4\" - 5'8\"", min: 64, max: 68 },
+  { label: "5'8\" - 6'0\"", min: 68, max: 72 },
+  { label: "6'0\" - 6'4\"", min: 72, max: 76 },
+  { label: "6'4\"+", min: 76, max: 84 }
+]
+
+const weightRanges = [
+  { label: "100-120 lbs", min: 100, max: 120 },
+  { label: "120-140 lbs", min: 120, max: 140 },
+  { label: "140-160 lbs", min: 140, max: 160 },
+  { label: "160-180 lbs", min: 160, max: 180 },
+  { label: "180-200 lbs", min: 180, max: 200 },
+  { label: "200+ lbs", min: 200, max: 350 }
+]
 
 interface SearchResult {
   profiles: any[]

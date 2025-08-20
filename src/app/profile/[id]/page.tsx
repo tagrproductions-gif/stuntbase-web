@@ -48,9 +48,9 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
   // Try to get related data (skills, certifications, photos) separately
   // This way if any of these fail, we can still show the basic profile
-  let profileSkills = []
-  let profileCertifications = []
-  let profilePhotos = []
+  let profileSkills: any[] = []
+  let profileCertifications: any[] = []
+  let profilePhotos: any[] = []
 
   try {
     const { data: skills } = await supabase

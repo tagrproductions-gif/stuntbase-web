@@ -33,7 +33,7 @@ export function ResumeUpload({
     const validation = validatePDF(file)
     console.log('📄 ResumeUpload - Validation result:', validation)
     if (!validation.isValid) {
-      setError(validation.message || 'Invalid file')
+      setError(validation.error || 'Invalid file')
       return
     }
 

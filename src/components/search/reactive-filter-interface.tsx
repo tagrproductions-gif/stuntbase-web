@@ -126,7 +126,7 @@ export function ReactiveFilterInterface() {
     if (value === '' || value === 'all') {
       delete newFilters[key]
     } else {
-      newFilters[key] = value
+      (newFilters as any)[key] = value
     }
     setFilters(newFilters)
   }

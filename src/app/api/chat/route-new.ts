@@ -33,8 +33,13 @@ async function retryApiCall<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T>
 }
 
 export async function POST(request: NextRequest) {
+  let conversationHistory: any[] = []
+  let message = ''
+  
   try {
-    const { message, conversationHistory } = await request.json()
+    const requestData = await request.json()
+    message = requestData.message
+    conversationHistory = requestData.conversationHistory || []
     
     console.log('🚀 TWO-AGENT PIPELINE STARTED')
     console.log('📝 User Query:', message)

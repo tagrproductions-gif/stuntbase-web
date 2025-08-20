@@ -80,9 +80,9 @@ export default async function EditProfilePage({ params }: EditProfilePageProps) 
   }
 
   // Get related data separately
-  let profileSkills = []
-  let profileCertifications = []
-  let profilePhotos = []
+  let profileSkills: any[] = []
+  let profileCertifications: any[] = []
+  let profilePhotos: any[] = []
 
   try {
     const { data: skills } = await supabase
