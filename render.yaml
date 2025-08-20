@@ -1,0 +1,16 @@
+services:
+  # Main web application
+  - type: web
+    name: stuntbase-web
+    env: node
+    plan: starter # Start with starter, upgrade to standard later
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_SUPABASE_URL
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+      - key: ANTHROPIC_API_KEY
+      - key: OPENAI_API_KEY
+    healthCheckPath: /api/health
