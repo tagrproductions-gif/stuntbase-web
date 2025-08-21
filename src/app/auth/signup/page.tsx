@@ -43,7 +43,9 @@ export default function SignupPage() {
         email,
         password,
         options: {
-          emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/auth/callback`,
+          // Use OTP instead of email links for universal compatibility
+          // emailRedirectTo: undefined, // For OTP flow
+          emailRedirectTo: undefined, // Force OTP flow for testing
         },
       })
 
@@ -79,8 +81,8 @@ export default function SignupPage() {
           setError(error.message)
         }
       } else {
-        // Always show success message - user must verify email
-        setSuccess(true)
+        // For testing: always use OTP flow
+        router.push(`/auth/verify-otp?email=${encodeURIComponent(email)}`)
       }
     } catch (err) {
       setError('An unexpected error occurred')

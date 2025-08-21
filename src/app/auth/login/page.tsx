@@ -58,7 +58,7 @@ export default function LoginPage() {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/auth/reset-password`,
+        redirectTo: 'https://stuntpitch.com/auth/reset-password',
       })
 
       if (error) {

@@ -2,14 +2,17 @@ import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url)
+  const requestUrl = new URL(request.url)
+  const { searchParams, origin } = requestUrl
   const code = searchParams.get('code')
   const next = searchParams.get('next') ?? '/dashboard'
 
   console.log('Auth callback:', { 
+    fullUrl: request.url,
     code: code ? 'present' : 'missing', 
     origin, 
     next,
+    allSearchParams: Object.fromEntries(searchParams.entries()),
     headers: {
       'x-forwarded-host': request.headers.get('x-forwarded-host'),
       'host': request.headers.get('host'),
