@@ -6,8 +6,30 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'StuntGhost - Stunt Performer Directory',
-  description: 'Connect stunt performers with casting directors and coordinators',
+  title: 'StuntPitch - Stunt Performer Directory',
+  description: 'Connect stunt performers with casting directors and coordinators. Find the perfect talent for your project with AI-powered search.',
+  openGraph: {
+    title: 'StuntPitch - Stunt Performer Directory',
+    description: 'Connect stunt performers with casting directors and coordinators. Find the perfect talent for your project with AI-powered search.',
+    url: 'https://stuntpitch.com',
+    siteName: 'StuntPitch',
+    images: [
+      {
+        url: 'https://stuntpitch.com/logo.png',
+        width: 512,
+        height: 512,
+        alt: 'StuntPitch Logo',
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'StuntPitch - Stunt Performer Directory',
+    description: 'Connect stunt performers with casting directors and coordinators. Find the perfect talent for your project with AI-powered search.',
+    images: ['https://stuntpitch.com/logo.png'],
+  },
 }
 
 export const viewport = {
