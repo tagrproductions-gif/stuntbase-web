@@ -126,7 +126,7 @@ export default function SignupPage() {
           <Link href="/" className="flex items-center justify-center space-x-3 mb-2">
             <Image
               src="/logo.png"
-              alt="StuntGhost Logo"
+              alt="StuntPitch Logo"
               width={40}
               height={40}
               className="object-contain"
@@ -137,7 +137,7 @@ export default function SignupPage() {
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text'
             }}>
-              StuntGhost
+              StuntPitch
             </span>
           </Link>
           <p className="text-gray-600 mt-2">Create your performer profile</p>

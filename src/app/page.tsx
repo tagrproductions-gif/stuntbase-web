@@ -229,16 +229,11 @@ export default function HomePage() {
                 {messages.length === 0 && !hasSearched && (
                   <div className="text-center py-8 text-muted-foreground reveal reveal-3">
                     <div className="w-16 h-16 mx-auto mb-4 relative float">
-                      <Image
-                        src="/ghost.png"
-                        alt="Ghost Assistant"
-                        width={62}
-                        height={62}
-                        className="object-contain"
-                      />
+                      <Bot className="w-16 h-16 text-primary drop-shadow-lg" style={{
+                        filter: 'drop-shadow(0 0 20px rgba(196, 95, 60, 0.4))'
+                      }} />
                     </div>
-                    <p className="text-lg font-medium">Start your search...</p>
-                    <p className="text-sm mt-2 opacity-75">Try: "I need a martial artist for an action sequence in Atlanta"</p>
+                    <p className="text-lg font-medium">You Search, I'll Pitch</p>
                   </div>
                 )}
                 
@@ -250,14 +245,8 @@ export default function HomePage() {
                     }`}
                   >
                     {message.role === 'assistant' && (
-                      <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center p-1">
-                        <Image
-                          src="/ghost.png"
-                          alt="Ghost Assistant"
-                          width={26}
-                          height={26}
-                          className="object-contain"
-                        />
+                      <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
+                        <Bot className="w-5 h-5 text-primary-foreground" />
                       </div>
                     )}
                     
@@ -282,14 +271,8 @@ export default function HomePage() {
                 {/* Show typing animation when isTyping */}
                 {isTyping && (
                   <div className="flex items-start space-x-3 justify-start reveal">
-                    <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center gentle-pulse p-1">
-                      <Image
-                        src="/ghost.png"
-                        alt="Ghost Assistant"
-                        width={26}
-                        height={26}
-                        className="object-contain"
-                      />
+                    <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center gentle-pulse">
+                      <Bot className="w-5 h-5 text-primary-foreground" />
                     </div>
                     <div className="bg-card text-card-foreground px-4 py-2 rounded-lg max-w-xs lg:max-w-md shadow-md">
                       <p className="text-sm whitespace-pre-wrap">
@@ -308,14 +291,8 @@ export default function HomePage() {
                 
                 {loading && !isTyping && (
                   <div className="flex items-start space-x-3">
-                    <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center p-1">
-                      <Image
-                        src="/ghost.png"
-                        alt="Ghost Assistant"
-                        width={26}
-                        height={26}
-                        className="object-contain"
-                      />
+                    <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
+                      <Bot className="w-5 h-5 text-primary-foreground" />
                     </div>
                     <div className="bg-card px-4 py-2 rounded-lg">
                       <div className="flex space-x-1">
@@ -335,7 +312,7 @@ export default function HomePage() {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyPress={handleKeyPress}
-                    placeholder="Describe the performer you're looking for..."
+                    placeholder="I need a 5'8 martial artist in Los Angeles"
                     disabled={loading}
                     className="w-full focus-glow text-base py-3 sm:py-4 px-4 sm:px-6 rounded-xl sm:rounded-2xl bg-white/80 backdrop-blur-sm border-2 border-primary/20 hover:border-primary/40 focus:border-primary/60 transition-all duration-500 shadow-lg"
                   />
@@ -369,10 +346,10 @@ export default function HomePage() {
                 {profiles.length > 0 ? `Found ${profiles.length} Performers` : 'No Results'}
             </h2>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto p-3 xl:p-4">
               
               {profiles.length > 0 ? (
-                <div className="grid grid-cols-2 xl:grid-cols-2 gap-2 sm:gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
                   {profiles.map((profile, index) => (
                     <Card 
                       key={profile.id} 
@@ -385,7 +362,7 @@ export default function HomePage() {
                     >
                       <div className="relative">
                         {/* Main Photo */}
-                        <div className="aspect-[3/4] relative overflow-hidden bg-muted">
+                        <div className="aspect-[4/5] relative overflow-hidden bg-muted">
                           {(() => {
                             const primaryPhoto = getPrimaryPhoto(profile);
                             return primaryPhoto ? (
@@ -406,24 +383,24 @@ export default function HomePage() {
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                           
                           {/* Name and Location overlay */}
-                          <div className="absolute bottom-0 left-0 right-0 p-2 sm:p-3 text-white">
-                            <h3 className="font-bold text-sm sm:text-lg leading-tight mb-1 profile-overlay-text line-clamp-1">{profile.full_name}</h3>
-                            <p className="text-xs sm:text-sm text-white/90 mb-1 sm:mb-2 profile-overlay-text-90 line-clamp-1">{profile.location}</p>
+                          <div className="absolute bottom-0 left-0 right-0 p-2 text-white">
+                            <h3 className="font-bold text-sm xl:text-base leading-tight mb-1 profile-overlay-text line-clamp-1">{profile.full_name}</h3>
+                            <p className="text-xs text-white/90 mb-1 profile-overlay-text-90 line-clamp-1">{profile.location}</p>
                             
                             {/* Physical Stats */}
-                            <div className="flex items-center space-x-1 sm:space-x-2 text-xs text-white/80 profile-overlay-text-80">
+                            <div className="flex items-center flex-wrap gap-1 text-xs text-white/80 profile-overlay-text-80">
                               {(profile.height_feet || profile.height_inches) && (
-                                <span className="bg-black/30 px-1 sm:px-2 py-0.5 sm:py-1 rounded backdrop-blur-sm font-medium text-xs">
+                                <span className="bg-black/30 px-1.5 py-0.5 rounded backdrop-blur-sm font-medium text-xs">
                                   {formatHeight(profile.height_feet || 0, profile.height_inches || 0)}
                                 </span>
                               )}
                               {profile.weight_lbs && (
-                                <span className="bg-black/30 px-1 sm:px-2 py-0.5 sm:py-1 rounded backdrop-blur-sm font-medium text-xs">
+                                <span className="bg-black/30 px-1.5 py-0.5 rounded backdrop-blur-sm font-medium text-xs">
                                   {profile.weight_lbs} lbs
                                 </span>
                               )}
                               {profile.experience_years && (
-                                <span className="bg-black/30 px-1 sm:px-2 py-0.5 sm:py-1 rounded backdrop-blur-sm font-medium text-xs">
+                                <span className="bg-black/30 px-1.5 py-0.5 rounded backdrop-blur-sm font-medium text-xs">
                                   {profile.experience_years}y exp
                                 </span>
                               )}
@@ -432,9 +409,9 @@ export default function HomePage() {
                         </div>
                         
                         {/* Card Content */}
-                        <CardContent className="p-2 sm:p-3">
+                        <CardContent className="p-2">
                           <Link href={`/profile/${profile.id}`} className="block">
-                            <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-xs sm:text-sm min-h-[36px] sm:min-h-[44px] touch-manipulation">
+                            <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-xs min-h-[32px] xl:min-h-[36px] touch-manipulation">
                               View Profile
                             </Button>
                           </Link>

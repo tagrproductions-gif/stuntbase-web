@@ -73,7 +73,7 @@ export function DeleteProfileSection({ profile }: DeleteProfileSectionProps) {
           Danger Zone
         </CardTitle>
         <CardDescription>
-          Permanently delete your StuntGhost profile and all associated data.
+          Permanently delete your StuntPitch profile and all associated data.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -110,7 +110,7 @@ export function DeleteProfileSection({ profile }: DeleteProfileSectionProps) {
               <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
               <AlertDialogDescription className="space-y-3">
                 <p>
-                  This will permanently delete your StuntGhost profile for <strong>{profile.full_name}</strong> and remove all your data from our servers.
+                  This will permanently delete your StuntPitch profile for <strong>{profile.full_name}</strong> and remove all your data from our servers.
                 </p>
                 <p>
                   To confirm deletion, please type <strong>DELETE</strong> in the box below:

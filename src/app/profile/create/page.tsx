@@ -36,7 +36,7 @@ export default async function CreateProfilePage() {
             <>
               <h1 className="text-3xl font-bold text-foreground">Welcome Back!</h1>
               <p className="text-muted-foreground mt-2">
-                Let&apos;s create your new StuntGhost profile. All your previous data has been removed as requested.
+                Let&apos;s create your new StuntPitch profile. All your previous data has been removed as requested.
               </p>
             </>
           ) : (

@@ -1,4 +1,4 @@
--- RLS Policies for StuntGhost profiles table
+-- RLS Policies for StuntPitch profiles table
 -- Run this in your Supabase SQL Editor
 
 -- First, ensure RLS is enabled on the profiles table

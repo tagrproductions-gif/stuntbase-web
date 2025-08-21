@@ -29,7 +29,7 @@ export function Navbar() {
             <Link href="/" className="flex items-center space-x-2 sm:space-x-3" onClick={closeMobileMenu}>
               <Image
                 src="/logo.png"
-                alt="StuntGhost Logo"
+                alt="StuntPitch Logo"
                 width={32}
                 height={32}
                 className="object-contain"
@@ -40,7 +40,7 @@ export function Navbar() {
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text'
               }}>
-                StuntGhost
+                StuntPitch
               </span>
             </Link>
           </div>

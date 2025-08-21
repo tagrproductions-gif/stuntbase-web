@@ -5,6 +5,9 @@ import { findLocationByAlias, ALL_LOCATIONS } from '@/lib/constants/locations'
 import { parseUserQuery } from '@/lib/agents/query-parser'
 import { queryWithStructuredFilters } from '@/lib/agents/structured-query'
 import { generateCastingResponse } from '@/lib/agents/casting-assistant'
+import { detectUserIntent } from '@/lib/agents/intent-detection'
+import { generateConversationalResponse } from '@/lib/agents/conversational-agent'
+import { detectNameQuery, searchProfilesByName, generateNameBasedResponse } from '@/lib/agents/name-detector'
 
 // Helper function to retry API calls with exponential backoff
 async function retryApiCall<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
@@ -52,55 +55,137 @@ export async function POST(request: NextRequest) {
     message = requestData.message
     conversationHistory = requestData.conversationHistory || []
     
-    console.log('🚀 TWO-AGENT PIPELINE STARTED')
-    console.log('📝 User Query:', message)
+    console.log('🚀 ENHANCED AI PIPELINE STARTED')
+    console.log('📝 User Message:', message)
+    console.log('📚 Conversation Context:', conversationHistory.length, 'previous messages')
     
-    // STAGE 1: Parse user query into structured filters
-    console.log('🤖 AGENT 1: Parsing query...')
-    const parsedQuery = await parseUserQuery(message)
-    console.log('✅ AGENT 1 Result:', parsedQuery)
+    // STAGE -1: Name Detection - Fast preprocessing for name-based queries
+    const nameQuery = detectNameQuery(message)
+    console.log('👤 Name Query Check:', nameQuery)
     
-    // STAGE 2: Query database with structured filters
-    console.log('🗄️ DATABASE: Querying with structured filters...')
-    const queryResult = await queryWithStructuredFilters(parsedQuery)
-    console.log('✅ DATABASE Result:', {
-      method: queryResult.method,
-      totalFound: queryResult.totalMatched,
-      filtersApplied: queryResult.filtersApplied
-    })
-    
-    // STAGE 3: Generate casting assistant response
-    console.log('🎭 AGENT 2: Generating casting response...')
-    const castingResponse = await generateCastingResponse(message, parsedQuery, queryResult)
-    console.log('✅ AGENT 2 Result:', {
-      responseLength: castingResponse.response.length,
-      profileCount: castingResponse.profileIds.length
-    })
-    
-    // Get matched profiles for frontend
-    const matchedProfiles = queryResult.profiles.filter(p => 
-      castingResponse.profileIds.includes(p.id)
-    )
-    
-    console.log('🎉 PIPELINE COMPLETE:', {
-      totalProcessed: queryResult.totalMatched,
-      finalRecommendations: matchedProfiles.length,
-      confidence: parsedQuery.confidence
-    })
+    if (nameQuery.isNameQuery && nameQuery.confidence > 0.6) {
+      // FAST NAME LOOKUP: Bypass expensive AI processing
+      console.log('⚡ FAST NAME LOOKUP MODE: Processing specific person database search...')
+      console.log('🔍 Searching database for:', nameQuery.extractedNames)
+      
+      const profileMatches = await searchProfilesByName(nameQuery.extractedNames)
+      const nameResponse = generateNameBasedResponse(message, nameQuery, profileMatches)
+      
+      console.log('✅ NAME LOOKUP COMPLETE:', {
+        foundProfiles: profileMatches.length,
+        responseLength: nameResponse.response.length
+      })
 
-    return NextResponse.json({
-      response: castingResponse.response,
-      profiles: matchedProfiles,
-      conversationHistory: [
-        ...conversationHistory.slice(-4),
-        { role: 'user', content: message },
-        { role: 'assistant', content: castingResponse.response }
-      ],
-      // Debug/analytics data
-      searchStats: castingResponse.searchStats,
-      parsedQuery: parsedQuery,
-      pipeline: 'two-agent'
-    })
+      return NextResponse.json({
+        response: nameResponse.response,
+        profiles: profileMatches, // Show all found profiles, not just filtered ones
+        conversationHistory: [
+          ...conversationHistory.slice(-4),
+          { role: 'user', content: message },
+          { role: 'assistant', content: nameResponse.response }
+        ],
+        nameQuery: nameQuery,
+        pipeline: 'name-lookup-mode'
+      })
+    }
+    
+    // STAGE 0: Intent Detection - Determine if this is search or conversation
+    const intentAnalysis = await detectUserIntent(message, conversationHistory)
+    console.log('🎯 Intent Analysis:', intentAnalysis)
+    
+    if (intentAnalysis.intent === 'search' && intentAnalysis.confidence > 0.6) {
+      // SEARCH MODE: Check if this is a name query first
+      console.log('🔍 SEARCH MODE: Processing as talent search...')
+      
+      // Sub-check: Is this a name-specific search?
+      const nameQuery = detectNameQuery(message)
+      if (nameQuery.isNameQuery && nameQuery.confidence > 0.5) {
+        // This is a name query that was detected as search - use name lookup
+        console.log('👤 DETECTED NAME WITHIN SEARCH: Routing to name lookup...')
+        
+        const profileMatches = await searchProfilesByName(nameQuery.extractedNames)
+        const nameResponse = generateNameBasedResponse(message, nameQuery, profileMatches)
+        
+        return NextResponse.json({
+          response: nameResponse.response,
+          profiles: profileMatches,
+          conversationHistory: [
+            ...conversationHistory.slice(-4),
+            { role: 'user', content: message },
+            { role: 'assistant', content: nameResponse.response }
+          ],
+          nameQuery: nameQuery,
+          pipeline: 'search-to-name-lookup'
+        })
+      }
+      
+      // STAGE 1: Parse user query into structured filters
+      console.log('🤖 AGENT 1: Parsing query...')
+      const parsedQuery = await parseUserQuery(message)
+      console.log('✅ AGENT 1 Result:', parsedQuery)
+      
+      // STAGE 2: Query database with structured filters
+      console.log('🗄️ DATABASE: Querying with structured filters...')
+      const queryResult = await queryWithStructuredFilters(parsedQuery)
+      console.log('✅ DATABASE Result:', {
+        method: queryResult.method,
+        totalFound: queryResult.totalMatched,
+        filtersApplied: queryResult.filtersApplied
+      })
+      
+      // STAGE 3: Generate casting assistant response
+      console.log('🎭 AGENT 2: Generating casting response...')
+      const castingResponse = await generateCastingResponse(message, parsedQuery, queryResult, conversationHistory)
+      console.log('✅ AGENT 2 Result:', {
+        responseLength: castingResponse.response.length,
+        profileCount: castingResponse.profileIds.length
+      })
+      
+      // Get matched profiles for frontend
+      const matchedProfiles = queryResult.profiles.filter(p => 
+        castingResponse.profileIds.includes(p.id)
+      )
+      
+      console.log('🎉 SEARCH PIPELINE COMPLETE:', {
+        totalProcessed: queryResult.totalMatched,
+        finalRecommendations: matchedProfiles.length,
+        confidence: parsedQuery.confidence
+      })
+
+      return NextResponse.json({
+        response: castingResponse.response,
+        profiles: matchedProfiles,
+        conversationHistory: [
+          ...conversationHistory.slice(-4),
+          { role: 'user', content: message },
+          { role: 'assistant', content: castingResponse.response }
+        ],
+        searchStats: castingResponse.searchStats,
+        parsedQuery: parsedQuery,
+        intentAnalysis: intentAnalysis,
+        pipeline: 'search-mode'
+      })
+      
+    } else {
+      // CONVERSATION MODE: Natural chat interaction
+      console.log('💬 CONVERSATION MODE: Engaging in natural dialogue...')
+      
+      const conversationalResponse = await generateConversationalResponse(message, conversationHistory, intentAnalysis)
+      console.log('✅ CONVERSATION Response generated')
+      
+      return NextResponse.json({
+        response: conversationalResponse.response,
+        profiles: [], // No profiles for pure conversation
+        conversationHistory: [
+          ...conversationHistory.slice(-4),
+          { role: 'user', content: message },
+          { role: 'assistant', content: conversationalResponse.response }
+        ],
+        intentAnalysis: intentAnalysis,
+        shouldTransitionToSearch: conversationalResponse.shouldTransitionToSearch,
+        pipeline: 'conversation-mode'
+      })
+    }
     
   } catch (error) {
     console.error('🚨 Two-Agent Pipeline Error:', error)

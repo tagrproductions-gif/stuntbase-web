@@ -26,7 +26,7 @@ export function ProfileCard({ profile }: ProfileCardProps) {
 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-200 touch-manipulation">
-      <div className="aspect-[3/4] relative bg-muted">
+      <div className="aspect-[4/5] relative bg-muted">
         {primaryPhoto ? (
           <Image
             src={primaryPhoto.file_path}

@@ -80,7 +80,7 @@ export default function LoginPage() {
           <Link href="/" className="flex items-center justify-center space-x-3 mb-2">
             <Image
               src="/logo.png"
-              alt="StuntGhost Logo"
+              alt="StuntPitch Logo"
               width={40}
               height={40}
               className="object-contain"
@@ -91,7 +91,7 @@ export default function LoginPage() {
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text'
             }}>
-              StuntGhost
+              StuntPitch
             </span>
           </Link>
           <p className="text-muted-foreground mt-2">Welcome back to your profile</p>

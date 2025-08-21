@@ -61,7 +61,7 @@ export default async function SettingsPage() {
                 Subscription Plan
               </CardTitle>
               <CardDescription className="text-sm">
-                Manage your StuntGhost subscription and billing
+                Manage your StuntPitch subscription and billing
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

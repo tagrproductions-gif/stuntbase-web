@@ -1,4 +1,4 @@
-// Structured location system for StuntGhost
+// Structured location system for StuntPitch
 export interface LocationOption {
   value: string
   label: string
@@ -73,6 +73,14 @@ export const TIER1_MARKETS: LocationOption[] = [
     country: "USA", 
     market: "tier1",
     aliases: ["orlando", "florida"]
+  },
+  {
+    value: "new-orleans-la",
+    label: "New Orleans, LA",
+    state: "LA",
+    country: "USA",
+    market: "tier1",
+    aliases: ["new orleans", "nola", "french quarter", "louisiana"]
   }
 ]
 
@@ -197,6 +205,78 @@ export const TIER2_MARKETS: LocationOption[] = [
     country: "USA",
     market: "tier2",
     aliases: ["sacramento", "california"]
+  },
+  {
+    value: "albuquerque-nm",
+    label: "Albuquerque, NM",
+    state: "NM",
+    country: "USA",
+    market: "tier2",
+    aliases: ["albuquerque", "abq", "new mexico"]
+  },
+  {
+    value: "pittsburgh-pa",
+    label: "Pittsburgh, PA",
+    state: "PA",
+    country: "USA",
+    market: "tier2",
+    aliases: ["pittsburgh", "steel city", "pennsylvania"]
+  },
+  {
+    value: "richmond-va",
+    label: "Richmond, VA",
+    state: "VA",
+    country: "USA",
+    market: "tier2",
+    aliases: ["richmond", "virginia"]
+  },
+  {
+    value: "wilmington-nc",
+    label: "Wilmington, NC",
+    state: "NC",
+    country: "USA",
+    market: "tier2",
+    aliases: ["wilmington", "hollywood east", "north carolina"]
+  },
+  {
+    value: "salt-lake-city-ut",
+    label: "Salt Lake City, UT",
+    state: "UT",
+    country: "USA",
+    market: "tier2",
+    aliases: ["salt lake city", "slc", "utah"]
+  },
+  {
+    value: "detroit-mi",
+    label: "Detroit, MI",
+    state: "MI",
+    country: "USA",
+    market: "tier2",
+    aliases: ["detroit", "motor city", "michigan"]
+  },
+  {
+    value: "cleveland-oh",
+    label: "Cleveland, OH",
+    state: "OH",
+    country: "USA",
+    market: "tier2",
+    aliases: ["cleveland", "ohio"]
+  },
+  {
+    value: "baltimore-md",
+    label: "Baltimore, MD",
+    state: "MD",
+    country: "USA",
+    market: "tier2",
+    aliases: ["baltimore", "charm city", "maryland"]
+  },
+  {
+    value: "kansas-city-mo",
+    label: "Kansas City, MO",
+    state: "MO",
+    country: "USA",
+    market: "tier2",
+    aliases: ["kansas city", "missouri"]
   }
 ]
 
@@ -231,6 +311,35 @@ export const INTERNATIONAL_MARKETS: LocationOption[] = [
     country: "Ireland", 
     market: "international",
     aliases: ["dublin", "ireland"]
+  },
+  {
+    value: "montreal-qc",
+    label: "Montreal, QC",
+    state: "QC",
+    country: "Canada",
+    market: "international",
+    aliases: ["montreal", "quebec", "canada"]
+  },
+  {
+    value: "budapest-hu",
+    label: "Budapest, Hungary",
+    country: "Hungary",
+    market: "international",
+    aliases: ["budapest", "hungary"]
+  },
+  {
+    value: "prague-cz",
+    label: "Prague, Czech Republic",
+    country: "Czech Republic",
+    market: "international",
+    aliases: ["prague", "czech republic", "czechia"]
+  },
+  {
+    value: "valletta-mt",
+    label: "Valletta, Malta",
+    country: "Malta",
+    market: "international",
+    aliases: ["valletta", "malta", "mdina"]
   }
 ]
 
