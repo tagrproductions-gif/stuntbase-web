@@ -56,7 +56,7 @@ export async function uploadPhotoAction(formData: FormData): Promise<{ url: stri
   return { url: publicUrl, error: null }
 }
 
-export async function addPhotoAction(profileId: string, photoUrl: string, caption?: string, isPrimary: boolean = false) {
+export async function addPhotoAction(profileId: string, photoUrl: string, isPrimary: boolean = false) {
   console.log('Server - addPhotoAction called for profile:', profileId, 'URL:', photoUrl)
   const supabase = createClient()
   

@@ -154,8 +154,7 @@ export const certificationSchema = z.object({
 })
 
 export const photoSchema = z.object({
-  file: z.instanceof(File, { message: 'Please select a valid image file' }),
-  caption: z.string().max(200, 'Caption too long').optional().or(z.literal(''))
+  file: z.instanceof(File, { message: 'Please select a valid image file' })
 })
 
 export const profileFormSchema = z.object({

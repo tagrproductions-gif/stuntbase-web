@@ -20,6 +20,17 @@ export async function createProfileAction(
     throw new Error('Not authenticated')
   }
 
+  // IMPORTANT: Check if user already has a profile to prevent duplicates
+  const { data: existingProfile } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('user_id', user.id)
+    .single()
+  
+  if (existingProfile) {
+    throw new Error('Profile already exists for this user')
+  }
+
   // Use the provided resume upload result
   const resumeData = resumeUploadResult
 

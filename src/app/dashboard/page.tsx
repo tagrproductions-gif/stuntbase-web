@@ -3,8 +3,9 @@ import { createClient } from '@/lib/supabase/server'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import Link from 'next/link'
-import Image from 'next/image'
 import { User, Settings, Search, PlusCircle } from 'lucide-react'
+import { Navbar } from '@/components/navigation/navbar'
+import { getCurrentUserProfileViewStats } from '@/lib/supabase/profile-views'
 
 export default async function DashboardPage() {
   const supabase = createClient()
@@ -25,59 +26,19 @@ export default async function DashboardPage() {
     .eq('user_id', user.id)
     .single()
 
+  // Get profile view statistics from your existing profile_analytics view
+  const viewStats = profile ? await getCurrentUserProfileViewStats() : null
+
   return (
     <div className="min-h-screen bg-background">
       {/* Navigation */}
-      <nav className="bg-card border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <Link href="/" className="flex items-center space-x-3">
-                <Image
-                  src="/logo.png"
-                  alt="StuntBase Logo"
-                  width={32}
-                  height={32}
-                  className="object-contain"
-                />
-                <span className="text-2xl font-bold" style={{
-                  background: 'linear-gradient(135deg, #C15F3C, #ff6b35)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text'
-                }}>
-                  StuntBase
-                </span>
-              </Link>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Link href="/search">
-                <Button variant="ghost">
-                  <Search className="mr-2 h-4 w-4" />
-                  Filter Search
-                </Button>
-              </Link>
-              <Link href="/dashboard/settings">
-                <Button variant="ghost">
-                  <Settings className="mr-2 h-4 w-4" />
-                  Settings
-                </Button>
-              </Link>
-              <form action="/auth/signout" method="post">
-                <Button variant="outline" type="submit">
-                  Sign Out
-                </Button>
-              </form>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground mt-2">Welcome back, {user.email}</p>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-muted-foreground mt-2 text-sm sm:text-base">Welcome back, {user.email}</p>
         </div>
 
         {!profile ? (
@@ -98,15 +59,17 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Profile Views</CardTitle>
                 <User className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">0</div>
-                <p className="text-xs text-muted-foreground">+0% from last month</p>
+                <div className="text-2xl font-bold">{viewStats?.total_views || profile?.view_count || 0}</div>
+                <p className="text-xs text-muted-foreground">
+                  {viewStats?.views_last_30_days || 0} in the last 30 days
+                </p>
               </CardContent>
             </Card>
 
@@ -138,7 +101,7 @@ export default async function DashboardPage() {
           </div>
         )}
 
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           <Card>
             <CardHeader>
               <CardTitle>Quick Actions</CardTitle>
@@ -172,6 +135,12 @@ export default async function DashboardPage() {
                 <Button variant="outline" className="w-full justify-start">
                   <Search className="mr-2 h-4 w-4" />
                   Search Other Performers
+                </Button>
+              </Link>
+              <Link href="/dashboard/settings" className="block">
+                <Button variant="outline" className="w-full justify-start">
+                  <Settings className="mr-2 h-4 w-4" />
+                  Account Settings
                 </Button>
               </Link>
             </CardContent>

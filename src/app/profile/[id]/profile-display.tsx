@@ -131,21 +131,20 @@ export function ProfileDisplay({ profile, isOwner }: ProfileDisplayProps) {
       <Navbar />
       
       <div className="max-w-7xl mx-auto">
-        {/* Larger Flipster-Style Photo Carousel */}
+        {/* Large Photo Carousel */}
         {allPhotos.length > 0 && (
           <div className="relative h-[50vh] overflow-hidden bg-background">
-            <div className="flex items-center justify-center h-full perspective-1000">
+            <div className="flex items-center justify-center h-full">
               <div className="relative w-full max-w-6xl mx-auto">
                 <div className="flex items-center justify-center space-x-4 px-8">
                   {allPhotos.map((photo: any, index: number) => {
                     const offset = index - currentPhotoIndex
                     const isActive = index === currentPhotoIndex
                     
-                    let translateX = offset * 200 // Increased spacing for larger size
-                    let scale = isActive ? 1.2 : 0.8 // Larger center photo
-                    let rotateY = offset * 25
+                    let translateX = offset * 240 // Better spacing for consistent appearance
+                    let scale = isActive ? 1.2 : 0.85 // Slightly larger non-active photos for better consistency
                     let zIndex = isActive ? 10 : Math.max(0, 5 - Math.abs(offset))
-                    let opacity = Math.abs(offset) <= 2 ? (isActive ? 1 : 0.7) : 0
+                    let opacity = Math.abs(offset) <= 2 ? (isActive ? 1 : 0.75) : 0 // Slightly more opacity for side photos
                     
 
                     
@@ -154,7 +153,7 @@ export function ProfileDisplay({ profile, isOwner }: ProfileDisplayProps) {
                         key={photo.id}
                         className="absolute transition-all duration-500 ease-out cursor-pointer"
                         style={{
-                          transform: `translateX(${translateX}px) scale(${scale}) rotateY(${rotateY}deg)`,
+                          transform: `translateX(${translateX}px) scale(${scale})`,
                           zIndex,
                           opacity,
                         }}
@@ -284,7 +283,7 @@ export function ProfileDisplay({ profile, isOwner }: ProfileDisplayProps) {
         </div>
 
         {/* Clean Professional Layout */}
-        <div className="bg-card px-6 py-8">
+        <div className="bg-card px-6 py-8 pb-16">
           <div className="max-w-6xl mx-auto">
             
             {/* Two Column Layout */}

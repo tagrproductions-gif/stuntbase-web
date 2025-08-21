@@ -40,6 +40,7 @@ export function ReactiveFilterInterface() {
   const [heightRange, setHeightRange] = useState<[number, number]>([48, 84])
   const [weightRange, setWeightRange] = useState<[number, number]>([80, 350])
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const [filtersCollapsed, setFiltersCollapsed] = useState(false)
   const limit = 12
 
   // Load filter options from actual database data
@@ -204,11 +205,40 @@ export function ReactiveFilterInterface() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Filter Section */}
       <Card>
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="flex items-center justify-between p-3 sm:p-6 border-b border-border/50">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Filter className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
+            <h3 className="text-base sm:text-lg font-semibold text-foreground">Filters</h3>
+            {getActiveFilterCount() > 0 && (
+              <Badge variant="secondary" className="ml-1 sm:ml-2 text-xs px-2 py-0.5">
+                {getActiveFilterCount()}
+              </Badge>
+            )}
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setFiltersCollapsed(!filtersCollapsed)}
+            className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 min-h-[32px] sm:min-h-[36px] touch-manipulation"
+          >
+            <span className="hidden sm:inline">
+              {filtersCollapsed ? 'Show Filters' : 'Hide Filters'}
+            </span>
+            <span className="sm:hidden">
+              {filtersCollapsed ? 'Show' : 'Hide'}
+            </span>
+            {filtersCollapsed ? <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" /> : <ChevronUp className="h-3 w-3 sm:h-4 sm:w-4" />}
+          </Button>
+        </div>
+        
+        <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
+          filtersCollapsed ? 'max-h-0 opacity-0' : 'max-h-[1000px] opacity-100'
+        }`}>
+          <CardContent className="p-3 sm:p-6 pt-3 sm:pt-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
             {/* Gender Filter */}
             <div>
               <Label htmlFor="gender" className="text-sm font-semibold mb-2 block">Gender</Label>
@@ -274,42 +304,45 @@ export function ReactiveFilterInterface() {
             </div>
           </div>
 
-          {/* Height Slider */}
-          <div className="mt-6">
-            <Label className="text-sm font-semibold mb-4 block">
-              Height: {formatHeight(heightRange[0])} - {formatHeight(heightRange[1])}
-            </Label>
-            <RangeSlider
-              min={filterOptions.heightRange.min}
-              max={filterOptions.heightRange.max}
-              value={heightRange}
-              onValueChange={handleHeightChange}
-              formatLabel={formatHeight}
-              className="mt-2"
-            />
-          </div>
+          {/* Height and Weight Sliders */}
+          <div className="mt-3 sm:mt-6 space-y-3 sm:space-y-6">
+            {/* Height Slider */}
+            <div>
+              <Label className="text-sm font-semibold mb-2 sm:mb-4 block">
+                Height: {formatHeight(heightRange[0])} - {formatHeight(heightRange[1])}
+              </Label>
+              <RangeSlider
+                min={filterOptions.heightRange.min}
+                max={filterOptions.heightRange.max}
+                value={heightRange}
+                onValueChange={handleHeightChange}
+                formatLabel={formatHeight}
+                className="mt-2"
+              />
+            </div>
 
-          {/* Weight Slider */}
-          <div className="mt-6">
-            <Label className="text-sm font-semibold mb-4 block">
-              Weight: {weightRange[0]} lbs - {weightRange[1]} lbs
-            </Label>
-            <RangeSlider
-              min={filterOptions.weightRange.min}
-              max={filterOptions.weightRange.max}
-              value={weightRange}
-              onValueChange={handleWeightChange}
-              formatLabel={(v) => `${v} lbs`}
-              className="mt-2"
-            />
+            {/* Weight Slider */}
+            <div>
+              <Label className="text-sm font-semibold mb-2 sm:mb-4 block">
+                Weight: {weightRange[0]} lbs - {weightRange[1]} lbs
+              </Label>
+              <RangeSlider
+                min={filterOptions.weightRange.min}
+                max={filterOptions.weightRange.max}
+                value={weightRange}
+                onValueChange={handleWeightChange}
+                formatLabel={(v) => `${v} lbs`}
+                className="mt-2"
+              />
+            </div>
           </div>
 
           {/* Advanced Options Toggle */}
-          <div className="mt-6">
+          <div className="mt-4 sm:mt-6">
             <Button
               variant="outline"
               onClick={() => setShowAdvanced(!showAdvanced)}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 text-xs sm:text-sm px-3 py-2 min-h-[32px] sm:min-h-[36px] touch-manipulation"
             >
               ADVANCED OPTIONS
               {showAdvanced ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -318,8 +351,8 @@ export function ReactiveFilterInterface() {
 
           {/* Advanced Filters */}
           {showAdvanced && (
-            <div className="mt-6 pt-6 border-t">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 <div>
                   <Label htmlFor="availability" className="text-sm font-semibold mb-2 block">Availability</Label>
                   <Select
@@ -337,11 +370,12 @@ export function ReactiveFilterInterface() {
               </div>
             </div>
           )}
-        </CardContent>
+          </CardContent>
+        </div>
       </Card>
 
       {/* Active Filters Display */}
-      {getActiveFilterCount() > 0 && (
+      {getActiveFilterCount() > 0 && !filtersCollapsed && (
         <div className="flex items-center gap-2 flex-wrap">
           <Filter className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm text-muted-foreground">
@@ -387,17 +421,17 @@ export function ReactiveFilterInterface() {
       {results && !loading && (
         <>
           {results.profiles.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-4 lg:gap-6">
               {results.profiles.map((profile) => (
                 <ProfileCard key={profile.id} profile={profile} />
               ))}
             </div>
           ) : (
             <Card>
-              <CardContent className="text-center py-12">
-                <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No performers found</h3>
-                <p className="text-gray-600 mb-4">
+              <CardContent className="text-center py-8 sm:py-12">
+                <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">No performers found</h3>
+                <p className="text-muted-foreground mb-4 text-sm sm:text-base">
                   Try adjusting your filters to find what you're looking for.
                 </p>
               </CardContent>
@@ -406,17 +440,18 @@ export function ReactiveFilterInterface() {
 
           {/* Pagination */}
           {results.totalPages > 1 && (
-            <div className="flex justify-center items-center gap-4">
+            <div className="flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-4">
               <Button
                 variant="outline"
                 onClick={() => handlePageChange(page - 1)}
                 disabled={page <= 1 || loading}
+                className="w-full sm:w-auto min-h-[44px] touch-manipulation"
               >
                 <ChevronLeft className="h-4 w-4" />
                 Previous
               </Button>
               
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-muted-foreground whitespace-nowrap">
                 Page {page} of {results.totalPages}
               </span>
               
@@ -424,6 +459,7 @@ export function ReactiveFilterInterface() {
                 variant="outline"
                 onClick={() => handlePageChange(page + 1)}
                 disabled={page >= results.totalPages || loading}
+                className="w-full sm:w-auto min-h-[44px] touch-manipulation"
               >
                 Next
                 <ChevronRight className="h-4 w-4" />

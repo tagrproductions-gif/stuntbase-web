@@ -48,6 +48,7 @@ export interface Database {
           chest: number | null
           waist: number | null
           is_public: boolean
+          view_count: number | null
           created_at: string
           updated_at: string
         }
@@ -252,28 +253,28 @@ export interface Database {
         Row: {
           id: string
           profile_id: string
-          photo_url: string
-          caption: string | null
+          file_path: string
+          file_name: string
           is_primary: boolean
-          display_order: number
+          sort_order: number
           created_at: string
         }
         Insert: {
           id?: string
           profile_id: string
-          photo_url: string
-          caption?: string | null
+          file_path: string
+          file_name: string
           is_primary?: boolean
-          display_order?: number
+          sort_order?: number
           created_at?: string
         }
         Update: {
           id?: string
           profile_id?: string
-          photo_url?: string
-          caption?: string | null
+          file_path?: string
+          file_name?: string
           is_primary?: boolean
-          display_order?: number
+          sort_order?: number
           created_at?: string
         }
       }
@@ -300,9 +301,54 @@ export interface Database {
           created_at?: string
         }
       }
+      profile_views: {
+        Row: {
+          id: string
+          profile_id: string
+          viewer_id: string | null
+          viewer_ip: string | null
+          viewed_at: string | null
+          user_agent: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          profile_id: string
+          viewer_id?: string | null
+          viewer_ip?: string | null
+          viewed_at?: string | null
+          user_agent?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          profile_id?: string
+          viewer_id?: string | null
+          viewer_ip?: string | null
+          viewed_at?: string | null
+          user_agent?: string | null
+          created_at?: string | null
+        }
+      }
     }
     Views: {
-      [_ in never]: never
+      profile_analytics: {
+        Row: {
+          profile_id: string
+          full_name: string
+          view_count: number | null
+          total_views: number
+          views_last_30_days: number
+          views_last_7_days: number
+          unique_registered_viewers: number
+          unique_anonymous_viewers: number
+        }
+      }
+      profiles_with_locations: {
+        Row: {
+          [key: string]: any // Complex view with many computed columns
+        }
+      }
     }
     Functions: {
       [_ in never]: never
@@ -335,3 +381,8 @@ export type ProfilePhotoInsert = Database['public']['Tables']['profile_photos'][
 
 export type SearchLog = Database['public']['Tables']['search_logs']['Row']
 export type SearchLogInsert = Database['public']['Tables']['search_logs']['Insert']
+
+export type ProfileView = Database['public']['Tables']['profile_views']['Row']
+export type ProfileViewInsert = Database['public']['Tables']['profile_views']['Insert']
+
+export type ProfileViewStats = Database['public']['Views']['profile_analytics']['Row']

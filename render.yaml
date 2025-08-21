@@ -1,7 +1,7 @@
 services:
   # Main web application
   - type: web
-    name: stuntbase-web
+    name: stuntghost-web
     env: node
     plan: starter # Start with starter, upgrade to standard later
     buildCommand: npm ci && npm run build

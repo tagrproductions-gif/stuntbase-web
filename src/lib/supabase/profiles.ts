@@ -93,10 +93,10 @@ export async function getProfile(profileId: string) {
       ),
       profile_photos (
         id,
-        photo_url,
-        caption,
+        file_path,
+        file_name,
         is_primary,
-        display_order
+        sort_order
       )
     `)
     .eq('id', profileId)
@@ -222,27 +222,30 @@ export async function uploadProfilePhoto(file: File, profileId: string): Promise
   return { url: publicUrl, error: null }
 }
 
-export async function addProfilePhoto(profileId: string, photoUrl: string, caption?: string, isPrimary: boolean = false) {
+export async function addProfilePhoto(profileId: string, photoUrl: string, isPrimary: boolean = false) {
   const supabase = createClient()
   
-  // Get current max display order
+  // Get current max sort order
   const { data: photos } = await supabase
     .from('profile_photos')
-    .select('display_order')
+    .select('sort_order')
     .eq('profile_id', profileId)
-    .order('display_order', { ascending: false })
+    .order('sort_order', { ascending: false })
     .limit(1)
   
-  const nextOrder = photos && photos.length > 0 ? photos[0].display_order + 1 : 1
+  const nextOrder = photos && photos.length > 0 ? photos[0].sort_order + 1 : 1
+  
+  // Extract file name from URL for file_name column
+  const fileName = photoUrl.split('/').pop() || 'unknown'
   
   const { data, error } = await supabase
     .from('profile_photos')
     .insert({
       profile_id: profileId,
-      photo_url: photoUrl,
-      caption: caption || null,
+      file_path: photoUrl,
+      file_name: fileName,
       is_primary: isPrimary,
-      display_order: nextOrder
+      sort_order: nextOrder
     })
     .select()
     .single()

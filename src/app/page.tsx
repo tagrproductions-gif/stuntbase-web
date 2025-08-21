@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -48,6 +48,7 @@ export default function HomePage() {
   const [showDeleteSuccess, setShowDeleteSuccess] = useState(false)
   const [carouselProfiles, setCarouselProfiles] = useState<Profile[]>([])
   const searchParams = useSearchParams()
+  const router = useRouter()
 
   // Check if user was redirected after profile deletion
   useEffect(() => {
@@ -119,6 +120,11 @@ export default function HomePage() {
       })
 
       if (!response.ok) {
+        if (response.status === 401) {
+          // User is not authenticated - redirect to signup
+          router.push('/auth/signup')
+          return
+        }
         throw new Error('Failed to get response')
       }
 
@@ -183,30 +189,28 @@ export default function HomePage() {
         </div>
       )}
 
-      <div className={`flex flex-col lg:flex-row transition-all duration-300 ${hasSearched ? 'h-[calc(100vh-4rem)]' : 'max-w-4xl mx-auto min-h-[60vh]'}`}>
+      <div className={`flex flex-col xl:flex-row transition-all duration-300 ${hasSearched ? 'h-[calc(100vh-4rem)]' : 'max-w-4xl mx-auto min-h-[60vh]'}`}>
         {/* Main Chat Area */}
-        <div className={`transition-all duration-300 flex flex-col ${hasSearched ? 'lg:w-1/2 w-full h-full border-r border-border' : 'w-full px-4 py-8'}`}>
+        <div className={`transition-all duration-300 flex flex-col ${hasSearched ? 'xl:w-1/2 w-full xl:h-full h-[50vh] xl:border-r border-b xl:border-b-0 border-border' : 'w-full px-4 py-8'}`}>
           {/* Header - only show when not searched */}
           {!hasSearched && (
-            <div className="text-center mb-6 px-4">
+            <div className="text-center mb-4 sm:mb-6 px-4">
               <div className="max-w-none mx-auto">
                 <h1 className="reveal" style={{
-                  fontSize: 'clamp(1.8rem, 4.5vw, 3.5rem)',
+                  fontSize: 'clamp(1.5rem, 6vw, 3.5rem)',
                   fontWeight: '900',
-                  lineHeight: '1.2',
+                  lineHeight: '1.1',
                   background: 'var(--title-gradient)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   backgroundClip: 'text',
-                  marginBottom: '1.5rem',
-                  whiteSpace: 'nowrap'
+                  marginBottom: '1.5rem'
                 }}>
-                  Find Stunt Performers with AI
+                  <span className="block sm:inline">Find Stunt Performers</span>
+                  <span className="block sm:inline sm:ml-2">with AI</span>
                 </h1>
-                <p className="reveal reveal-1" style={{
-                  fontSize: '1rem',
-                  color: '#888888',
-                  fontWeight: 'normal',
+                <p className="reveal reveal-1 text-muted-foreground max-w-2xl mx-auto" style={{
+                  fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
                   lineHeight: '1.6',
                   marginBottom: '0'
                 }}>
@@ -217,14 +221,22 @@ export default function HomePage() {
           )}
 
           {/* Chat Interface */}
-          <div className={`${hasSearched ? 'flex-1 flex flex-col p-4' : 'px-4 mt-8'}`}>
+          <div className={`${hasSearched ? 'flex-1 flex flex-col p-4' : 'px-4 mt-4 sm:mt-8'}`}>
             <Card className={`${hasSearched ? 'flex-1 flex flex-col' : 'depth-card'}`}>
-              <CardContent className={`${hasSearched ? 'p-4 flex-1 flex flex-col' : 'p-6'}`}>
+              <CardContent className={`${hasSearched ? 'p-4 flex-1 flex flex-col' : 'p-4 sm:p-6'}`}>
               {/* Messages */}
-              <div className={`space-y-4 mb-6 overflow-y-auto ${hasSearched ? 'flex-1' : 'max-h-96'}`}>
+              <div className={`space-y-4 mb-4 sm:mb-6 overflow-y-auto ${hasSearched ? 'flex-1' : 'max-h-96'}`}>
                 {messages.length === 0 && !hasSearched && (
                   <div className="text-center py-8 text-muted-foreground reveal reveal-3">
-                    <Bot className="w-12 h-12 mx-auto mb-4 text-primary float" />
+                    <div className="w-16 h-16 mx-auto mb-4 relative float">
+                      <Image
+                        src="/ghost.png"
+                        alt="Ghost Assistant"
+                        width={62}
+                        height={62}
+                        className="object-contain"
+                      />
+                    </div>
                     <p className="text-lg font-medium">Start your search...</p>
                     <p className="text-sm mt-2 opacity-75">Try: "I need a martial artist for an action sequence in Atlanta"</p>
                   </div>
@@ -238,8 +250,14 @@ export default function HomePage() {
                     }`}
                   >
                     {message.role === 'assistant' && (
-                      <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                        <Bot className="w-4 h-4 text-primary-foreground" />
+                      <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center p-1">
+                        <Image
+                          src="/ghost.png"
+                          alt="Ghost Assistant"
+                          width={26}
+                          height={26}
+                          className="object-contain"
+                        />
                       </div>
                     )}
                     
@@ -264,8 +282,14 @@ export default function HomePage() {
                 {/* Show typing animation when isTyping */}
                 {isTyping && (
                   <div className="flex items-start space-x-3 justify-start reveal">
-                    <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center gentle-pulse">
-                      <Bot className="w-4 h-4 text-primary-foreground" />
+                    <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center gentle-pulse p-1">
+                      <Image
+                        src="/ghost.png"
+                        alt="Ghost Assistant"
+                        width={26}
+                        height={26}
+                        className="object-contain"
+                      />
                     </div>
                     <div className="bg-card text-card-foreground px-4 py-2 rounded-lg max-w-xs lg:max-w-md shadow-md">
                       <p className="text-sm whitespace-pre-wrap">
@@ -284,8 +308,14 @@ export default function HomePage() {
                 
                 {loading && !isTyping && (
                   <div className="flex items-start space-x-3">
-                    <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                      <Bot className="w-4 h-4 text-primary-foreground" />
+                    <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center p-1">
+                      <Image
+                        src="/ghost.png"
+                        alt="Ghost Assistant"
+                        width={26}
+                        height={26}
+                        className="object-contain"
+                      />
                     </div>
                     <div className="bg-card px-4 py-2 rounded-lg">
                       <div className="flex space-x-1">
@@ -299,7 +329,7 @@ export default function HomePage() {
               </div>
 
               {/* Input */}
-              <div className="flex space-x-3 reveal reveal-4">
+              <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 reveal reveal-4">
                 <div className="flex-1 relative">
                   <Input
                     value={input}
@@ -307,18 +337,21 @@ export default function HomePage() {
                     onKeyPress={handleKeyPress}
                     placeholder="Describe the performer you're looking for..."
                     disabled={loading}
-                    className="w-full focus-glow text-base py-4 px-6 pr-20 rounded-2xl bg-white/80 backdrop-blur-sm border-2 border-primary/20 hover:border-primary/40 focus:border-primary/60 transition-all duration-500 shadow-lg"
+                    className="w-full focus-glow text-base py-3 sm:py-4 px-4 sm:px-6 rounded-xl sm:rounded-2xl bg-white/80 backdrop-blur-sm border-2 border-primary/20 hover:border-primary/40 focus:border-primary/60 transition-all duration-500 shadow-lg"
                   />
                 </div>
                 <Button
                   onClick={sendMessage}
                   disabled={loading || !input.trim()}
-                  className="button-enhanced px-8 py-4 rounded-2xl text-white font-medium shadow-xl"
+                  className="button-enhanced px-6 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl text-white font-medium shadow-xl w-full sm:w-auto min-h-[48px] touch-manipulation"
                 >
                   {loading ? (
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                   ) : (
-                    <Send className="w-5 h-5" />
+                    <>
+                      <Send className="w-5 h-5 sm:mr-0 mr-2" />
+                      <span className="sm:hidden">Send Message</span>
+                    </>
                   )}
                 </Button>
               </div>
@@ -329,7 +362,7 @@ export default function HomePage() {
 
         {/* Results Panel - only show after search */}
         {hasSearched && (
-          <div className="lg:w-1/2 w-full h-full flex flex-col lg:border-l lg:border-t-0 border-t border-border reveal">
+          <div className="xl:w-1/2 w-full xl:h-full h-[50vh] flex flex-col xl:border-l border-border reveal">
             <div className="p-4 border-b border-border bg-gradient-to-r from-primary/5 to-orange-500/5">
               <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
                 <Search className="w-5 h-5 text-primary" />
@@ -339,7 +372,7 @@ export default function HomePage() {
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               
               {profiles.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 xl:grid-cols-2 gap-2 sm:gap-4">
                   {profiles.map((profile, index) => (
                     <Card 
                       key={profile.id} 
@@ -364,7 +397,7 @@ export default function HomePage() {
                               />
                             ) : (
                               <div className="w-full h-full bg-muted flex items-center justify-center">
-                                <User className="w-16 h-16 text-muted-foreground" />
+                                <User className="w-12 h-12 sm:w-16 sm:h-16 text-muted-foreground" />
                               </div>
                             );
                           })()}
@@ -373,24 +406,24 @@ export default function HomePage() {
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                           
                           {/* Name and Location overlay */}
-                          <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
-                            <h3 className="font-bold text-lg leading-tight mb-1 profile-overlay-text">{profile.full_name}</h3>
-                            <p className="text-sm text-white/90 mb-2 profile-overlay-text-90">{profile.location}</p>
+                          <div className="absolute bottom-0 left-0 right-0 p-2 sm:p-3 text-white">
+                            <h3 className="font-bold text-sm sm:text-lg leading-tight mb-1 profile-overlay-text line-clamp-1">{profile.full_name}</h3>
+                            <p className="text-xs sm:text-sm text-white/90 mb-1 sm:mb-2 profile-overlay-text-90 line-clamp-1">{profile.location}</p>
                             
                             {/* Physical Stats */}
-                            <div className="flex items-center space-x-2 text-xs text-white/80 profile-overlay-text-80">
+                            <div className="flex items-center space-x-1 sm:space-x-2 text-xs text-white/80 profile-overlay-text-80">
                               {(profile.height_feet || profile.height_inches) && (
-                                <span className="bg-black/30 px-2 py-1 rounded backdrop-blur-sm font-medium">
+                                <span className="bg-black/30 px-1 sm:px-2 py-0.5 sm:py-1 rounded backdrop-blur-sm font-medium text-xs">
                                   {formatHeight(profile.height_feet || 0, profile.height_inches || 0)}
                                 </span>
                               )}
                               {profile.weight_lbs && (
-                                <span className="bg-black/30 px-2 py-1 rounded backdrop-blur-sm font-medium">
+                                <span className="bg-black/30 px-1 sm:px-2 py-0.5 sm:py-1 rounded backdrop-blur-sm font-medium text-xs">
                                   {profile.weight_lbs} lbs
                                 </span>
                               )}
                               {profile.experience_years && (
-                                <span className="bg-black/30 px-2 py-1 rounded backdrop-blur-sm font-medium">
+                                <span className="bg-black/30 px-1 sm:px-2 py-0.5 sm:py-1 rounded backdrop-blur-sm font-medium text-xs">
                                   {profile.experience_years}y exp
                                 </span>
                               )}
@@ -399,9 +432,9 @@ export default function HomePage() {
                         </div>
                         
                         {/* Card Content */}
-                        <CardContent className="p-3">
+                        <CardContent className="p-2 sm:p-3">
                           <Link href={`/profile/${profile.id}`} className="block">
-                            <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
+                            <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-xs sm:text-sm min-h-[36px] sm:min-h-[44px] touch-manipulation">
                               View Profile
                             </Button>
                           </Link>
@@ -424,7 +457,7 @@ export default function HomePage() {
 
       {/* Compact Feature Widgets - only show when not searched */}
       {!hasSearched && (
-        <div className="max-w-2xl mx-auto px-4 -mt-4 pb-6 reveal reveal-2">
+        <div className="max-w-2xl mx-auto px-4 mt-2 sm:-mt-4 pb-4 sm:pb-6 reveal reveal-2">
           <div className="grid grid-cols-3 gap-4">
             <div className="flex flex-col items-center p-3 rounded-lg bg-primary/5 border border-primary/10">
               <div className="w-8 h-8 bg-gradient-to-br from-primary/20 to-orange-500/20 rounded-lg mb-2 flex items-center justify-center">

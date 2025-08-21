@@ -85,7 +85,7 @@ export default function ResetPasswordPage() {
             <Link href="/" className="flex items-center justify-center space-x-3">
               <Image
                 src="/logo.png"
-                alt="StuntBase Logo"
+                alt="StuntGhost Logo"
                 width={40}
                 height={40}
                 className="object-contain"
@@ -96,7 +96,7 @@ export default function ResetPasswordPage() {
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text'
               }}>
-                StuntBase
+                StuntGhost
               </span>
             </Link>
           </div>
@@ -136,7 +136,7 @@ export default function ResetPasswordPage() {
           <Link href="/" className="flex items-center justify-center space-x-3 mb-2">
             <Image
               src="/logo.png"
-              alt="StuntBase Logo"
+              alt="StuntGhost Logo"
               width={40}
               height={40}
               className="object-contain"
@@ -147,7 +147,7 @@ export default function ResetPasswordPage() {
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text'
             }}>
-              StuntBase
+              StuntGhost
             </span>
           </Link>
           <p className="text-muted-foreground mt-2">Set your new password</p>

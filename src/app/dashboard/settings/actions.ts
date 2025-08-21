@@ -74,11 +74,18 @@ export async function deleteProfileAction(profileId: string) {
       .eq('profile_id', profileId)
 
     if (photos && photos.length > 0) {
-      // Extract file names from full URLs
+      // Extract storage paths from full URLs
+      // URLs look like: https://...supabase.co/storage/v1/object/public/profile-photos/{storage-path}
       const filePaths = photos.map(photo => {
         const url = photo.file_path
+        // Extract everything after '/profile-photos/' in the URL
+        const match = url.match(/\/profile-photos\/(.+)$/)
+        if (match) {
+          return match[1] // This gives us the actual storage path like "userId/profileId/filename"
+        }
+        // Fallback: extract filename and guess the path
         const fileName = url.split('/').pop()
-        return `${profileId}/${fileName}`
+        return `${user.id}/${profileId}/${fileName}`
       })
 
       // Delete files from storage
@@ -94,11 +101,14 @@ export async function deleteProfileAction(profileId: string) {
 
     // Delete resume from storage if exists
     if (profile.resume_url) {
-      const fileName = profile.resume_url.split('/').pop()
-      if (fileName) {
+      // Extract storage path from full URL
+      // URLs look like: https://...supabase.co/storage/v1/object/public/resumes/{storage-path}
+      const match = profile.resume_url.match(/\/resumes\/(.+)$/)
+      if (match) {
+        const storagePath = match[1] // This gives us the actual storage path like "userId/resume_timestamp.pdf"
         const { error: resumeStorageError } = await supabase.storage
           .from('resumes')
-          .remove([`${user.id}/${fileName}`])
+          .remove([storagePath])
 
         if (resumeStorageError) {
           console.error('Error deleting resume from storage:', resumeStorageError)
@@ -107,10 +117,9 @@ export async function deleteProfileAction(profileId: string) {
       }
     }
 
-    // Delete related data (foreign key constraints should handle this, but being explicit)
-    await supabase.from('profile_photos').delete().eq('profile_id', profileId)
-    await supabase.from('profile_skills').delete().eq('profile_id', profileId)
-    await supabase.from('profile_certifications').delete().eq('profile_id', profileId)
+    // Delete related data - CASCADE constraints automatically handle this now
+    // No need for explicit deletion of profile_photos, profile_skills, profile_certifications
+    // The foreign key constraints with CASCADE will automatically delete these
 
     // Finally, delete the profile itself
     const { error: deleteError } = await supabase

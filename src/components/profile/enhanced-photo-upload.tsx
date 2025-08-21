@@ -11,7 +11,6 @@ import { compressImage } from '@/lib/file-compression'
 
 interface PhotoData {
   file: File
-  caption: string
   preview: string
 }
 
@@ -62,7 +61,6 @@ export function EnhancedPhotoUpload({
           const preview = URL.createObjectURL(compressedFile)
           newPhotos.push({
             file: compressedFile,
-            caption: '',
             preview
           })
         } catch (error) {
@@ -71,7 +69,6 @@ export function EnhancedPhotoUpload({
           const preview = URL.createObjectURL(file)
           newPhotos.push({
             file,
-            caption: '',
             preview
           })
         }
@@ -101,12 +98,7 @@ export function EnhancedPhotoUpload({
     onPhotosChange(newPhotos)
   }
 
-  const updateCaption = (index: number, caption: string) => {
-    const newPhotos = photos.map((photo, i) => 
-      i === index ? { ...photo, caption } : photo
-    )
-    onPhotosChange(newPhotos)
-  }
+
 
   // Caption functionality removed - not supported in database schema
 
@@ -164,7 +156,7 @@ export function EnhancedPhotoUpload({
         {existingPhotos.length > 0 && (
           <div className="space-y-4">
             <Label>Current Photos (drag to reorder)</Label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {existingPhotos.map((photo, index) => (
                 <div 
                   key={photo.id} 
@@ -257,7 +249,7 @@ export function EnhancedPhotoUpload({
         {photos.length > 0 && (
           <div className="space-y-4">
             <Label>New Photos to Upload</Label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {photos.map((photo, index) => (
                 <div key={index} className="relative group border rounded-lg overflow-hidden border-blue-200">
                   <div className="aspect-video relative">
@@ -281,13 +273,7 @@ export function EnhancedPhotoUpload({
                     </button>
                   </div>
                   <div className="p-3">
-                    <Input
-                      placeholder="Add a caption (optional)"
-                      value={photo.caption}
-                      onChange={(e) => updateCaption(index, e.target.value)}
-                      className="text-sm"
-                    />
-                    <div className="flex items-center justify-between mt-2">
+                    <div className="flex items-center justify-between">
                       <span className="text-xs text-gray-500">
                         {(photo.file.size / 1024 / 1024).toFixed(1)} MB
                       </span>

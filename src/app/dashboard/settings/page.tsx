@@ -44,48 +44,48 @@ export default async function SettingsPage() {
     <div className="min-h-screen bg-background">
       <Navbar />
       
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">Settings</h1>
-          <p className="text-muted-foreground mt-2">
+      <div className="max-w-4xl mx-auto px-4 py-4 sm:py-8">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Settings</h1>
+          <p className="text-muted-foreground mt-2 text-sm sm:text-base">
             Manage your account, subscription, and profile preferences
           </p>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* Subscription Status */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+            <CardHeader className="pb-3 sm:pb-6">
+              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                 <Crown className="h-5 w-5 text-primary" />
                 Subscription Plan
               </CardTitle>
-              <CardDescription>
-                Manage your StuntBase subscription and billing
+              <CardDescription className="text-sm">
+                Manage your StuntGhost subscription and billing
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 border border-border rounded-lg space-y-3 sm:space-y-0">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 bg-muted rounded-lg flex items-center justify-center">
+                  <div className="h-10 w-10 bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
                     <Users className="h-5 w-5 text-muted-foreground" />
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-medium">Free Plan</span>
                       <Badge variant="secondary">Current</Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">Basic profile visibility</p>
                   </div>
                 </div>
-                <Button variant="outline" disabled>
+                <Button variant="outline" disabled className="w-full sm:w-auto text-sm">
                   <Badge variant="secondary" className="mr-2">Coming Soon</Badge>
                   Upgrade Plan
                 </Button>
               </div>
 
               {/* Subscription Tiers Preview */}
-              <div className="grid md:grid-cols-2 gap-4 mt-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 sm:mt-6">
                 <div className="p-4 border border-border rounded-lg opacity-75">
                   <div className="flex items-center gap-2 mb-3">
                     <Zap className="h-4 w-4 text-yellow-500" />

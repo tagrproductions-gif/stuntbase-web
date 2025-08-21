@@ -10,7 +10,6 @@ import { createClient } from '@/lib/supabase/client'
 
 interface PhotoData {
   file: File
-  caption: string
   preview: string
 }
 
@@ -76,7 +75,7 @@ export function ProfileEditForm({ profile }: ProfileEditFormProps) {
         }
       }
 
-      // Update existing photo order and captions if changed
+      // Update existing photo order if changed
       if (data.existingPhotos && data.existingPhotos.length > 0) {
         console.log('Edit form - Updating photo order...')
         const photoUpdates = data.existingPhotos.map((photo, index) => ({
@@ -146,7 +145,6 @@ export function ProfileEditForm({ profile }: ProfileEditFormProps) {
             const { error: photoError } = await addPhotoAction(
               profile.id, 
               url, 
-              photo.caption, 
               false // New photos are not primary by default
             )
             

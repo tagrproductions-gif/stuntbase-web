@@ -1,4 +1,4 @@
-// Structured location system for StuntBase
+// Structured location system for StuntGhost
 export interface LocationOption {
   value: string
   label: string

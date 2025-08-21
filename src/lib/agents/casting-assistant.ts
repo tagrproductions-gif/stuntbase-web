@@ -53,14 +53,14 @@ TONE & STYLE:
 - Keep responses SHORT (2-3 sentences max)
 - Present as "excellent options" or "strong candidates"
 
-RULES:
-- ONLY mention performers from the list above
-- Always include profile IDs: [PROFILES: id1,id2,id3]
-- Pick the best 1-3 closest matches
-- If limited options, explain why they're still good choices
+CRITICAL RULES:
+- ONLY use the EXACT FULL NAMES from the performer list above - NEVER make up or modify names
+- In your response, mention only the TOP 3-4 performers maximum in the chat
+- Always include ALL profile IDs for the UI: [PROFILES: id1,id2,id3,id4,etc]
+- If no suitable matches exist, be honest and say so clearly
 - Focus on adaptability and training potential
 
-FORMAT: "I found [NAME] who would be an excellent choice because [specific close-match reasons]. [Optional: Add 1-2 more if available]"`
+FORMAT: "I found [EXACT FULL NAME] who would be an excellent choice because [specific close-match reasons]. [Optional: Add 2-3 more with exact names if available]"`
 
   try {
     const response = await openai.chat.completions.create({

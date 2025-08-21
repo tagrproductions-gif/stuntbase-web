@@ -1,6 +1,8 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { ProfileDisplay } from './profile-display'
+import { recordProfileView } from '@/lib/supabase/profile-views'
+import { headers } from 'next/headers'
 
 interface ProfilePageProps {
   params: {
@@ -99,6 +101,27 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     profilePhotos = photos || []
   } catch (e) {
     console.warn('Could not load photos:', e)
+  }
+
+  // Record profile view (only if it's not the owner viewing their own profile)
+  if (!isOwner && canView) {
+    try {
+      const headersList = headers()
+      const userAgent = headersList.get('user-agent') || undefined
+      const referrer = headersList.get('referer') || undefined
+      const forwardedFor = headersList.get('x-forwarded-for')
+      const realIp = headersList.get('x-real-ip')
+      const ipAddress = forwardedFor?.split(',')[0] || realIp || undefined
+
+      await recordProfileView(params.id, {
+        userAgent,
+        referrer,
+        ipAddress
+      })
+    } catch (error) {
+      // Don't break the page if view tracking fails
+      console.warn('Failed to record profile view:', error)
+    }
   }
 
   // Combine the data

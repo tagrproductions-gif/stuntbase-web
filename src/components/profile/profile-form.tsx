@@ -22,7 +22,6 @@ import { AlertCircle, Save, User, Phone, Globe, DollarSign, Shield } from 'lucid
 
 interface PhotoData {
   file: File
-  caption: string
   preview: string
 }
 
@@ -163,7 +162,7 @@ export function ProfileForm({
   }
 
   return (
-    <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-6">
+    <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4 sm:space-y-6">
       {submitError && (
         <div className="bg-red-50 border border-red-200 rounded-md p-3 flex items-center gap-2 text-red-700">
           <AlertCircle className="h-4 w-4" />
@@ -173,20 +172,21 @@ export function ProfileForm({
 
       {/* Personal Information */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+        <CardHeader className="pb-3 sm:pb-6">
+          <CardTitle className="flex items-center gap-2 text-lg">
             <User className="h-5 w-5" />
             Personal Information
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2 md:col-span-2">
+        <CardContent className="space-y-3 sm:space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+            <div className="space-y-2 lg:col-span-2">
               <Label htmlFor="full_name">Full Name *</Label>
               <Input
                 id="full_name"
                 {...register('full_name')}
                 placeholder="Your full name"
+                className="min-h-[44px] touch-manipulation"
               />
               {errors.full_name && (
                 <p className="text-sm text-red-600">{errors.full_name.message}</p>
@@ -200,6 +200,7 @@ export function ProfileForm({
                 type="email"
                 {...register('email')}
                 placeholder="your.email@example.com"
+                className="min-h-[44px] touch-manipulation"
               />
               {errors.email && (
                 <p className="text-sm text-red-600">{errors.email.message}</p>
@@ -212,6 +213,7 @@ export function ProfileForm({
                 id="phone"
                 {...register('phone')}
                 placeholder="(555) 123-4567"
+                className="min-h-[44px] touch-manipulation"
               />
               {errors.phone && (
                 <p className="text-sm text-red-600">{errors.phone.message}</p>
@@ -220,7 +222,7 @@ export function ProfileForm({
 
             <div className="space-y-2">
               <Label htmlFor="primary_location_structured">Primary Location *</Label>
-              <Select {...register('primary_location_structured')}>
+              <Select {...register('primary_location_structured')} className="min-h-[44px] touch-manipulation">
                 <option value="">Select your primary location</option>
                 <optgroup label="🎬 Major Markets">
                   {TIER1_MARKETS.map(location => (
@@ -809,7 +811,12 @@ export function ProfileForm({
 
       {/* Submit Button */}
       <div className="flex justify-end">
-        <Button type="submit" disabled={loading} size="lg">
+        <Button 
+          type="submit" 
+          disabled={loading} 
+          size="lg"
+          className="disabled:opacity-50 disabled:cursor-not-allowed"
+        >
           <Save className="mr-2 h-4 w-4" />
           {loading ? 'Saving...' : submitLabel}
         </Button>

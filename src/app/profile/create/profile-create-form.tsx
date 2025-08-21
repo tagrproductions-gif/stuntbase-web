@@ -10,7 +10,6 @@ import { ProfileData, SkillData, CertificationData } from '@/lib/validations/pro
 
 interface PhotoData {
   file: File
-  caption: string
   preview: string
 }
 
@@ -29,6 +28,12 @@ export function ProfileCreateForm({ user }: ProfileCreateFormProps) {
     photos: PhotoData[]
     resume?: File | null
   }) => {
+    // Prevent double submission
+    if (loading) {
+      console.log('Create form - Already processing, ignoring duplicate submission')
+      return
+    }
+    
     setLoading(true)
 
     try {
@@ -69,7 +74,7 @@ export function ProfileCreateForm({ user }: ProfileCreateFormProps) {
         
         for (let i = 0; i < data.photos.length; i++) {
           const photo = data.photos[i]
-          console.log(`Processing photo ${i + 1}/${data.photos.length}:`, photo.caption || 'No caption')
+          console.log(`Processing photo ${i + 1}/${data.photos.length}`)
           
           try {
             // Upload to Supabase Storage
@@ -87,7 +92,6 @@ export function ProfileCreateForm({ user }: ProfileCreateFormProps) {
             const { error: photoError } = await addProfilePhoto(
               profile.id, 
               url, 
-              photo.caption, 
               i === 0 // First photo is primary
             )
             

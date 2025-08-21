@@ -425,21 +425,33 @@
   html.dark input[type="text"]::-webkit-input-placeholder,
   html.dark input[type="email"]::-webkit-input-placeholder,
   html.dark input[type="password"]::-webkit-input-placeholder,
+  html.dark input[type="number"]::-webkit-input-placeholder,
+  html.dark input[type="url"]::-webkit-input-placeholder,
+  html.dark textarea::-webkit-input-placeholder,
   input[type="text"]::-webkit-input-placeholder,
   input[type="email"]::-webkit-input-placeholder,
-  input[type="password"]::-webkit-input-placeholder {
+  input[type="password"]::-webkit-input-placeholder,
+  input[type="number"]::-webkit-input-placeholder,
+  input[type="url"]::-webkit-input-placeholder,
+  textarea::-webkit-input-placeholder {
     color: hsl(var(--muted-foreground)) !important;
-    opacity: 0.7 !important;
+    opacity: 0.4 !important;
   }
   
   html.dark input[type="text"]::-moz-placeholder,
   html.dark input[type="email"]::-moz-placeholder,
   html.dark input[type="password"]::-moz-placeholder,
+  html.dark input[type="number"]::-moz-placeholder,
+  html.dark input[type="url"]::-moz-placeholder,
+  html.dark textarea::-moz-placeholder,
   input[type="text"]::-moz-placeholder,
   input[type="email"]::-moz-placeholder,
-  input[type="password"]::-moz-placeholder {
+  input[type="password"]::-moz-placeholder,
+  input[type="number"]::-moz-placeholder,
+  input[type="url"]::-moz-placeholder,
+  textarea::-moz-placeholder {
     color: hsl(var(--muted-foreground)) !important;
-    opacity: 0.7 !important;
+    opacity: 0.4 !important;
   }
 
   /* Fix autofill styling in dark mode - prevents white background on autofill suggestions */
@@ -526,6 +538,37 @@
     }
     to {
       opacity: 1;
+    }
+  }
+
+  /* Mobile-optimized form inputs */
+  @media (max-width: 640px) {
+    input, textarea, select {
+      min-height: 44px !important;
+      font-size: 16px !important; /* Prevents zoom on iOS */
+    }
+    
+    button {
+      min-height: 44px !important;
+      touch-action: manipulation;
+    }
+  }
+
+  /* Better mobile spacing and touch targets */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+    touch-action: manipulation;
+  }
+
+  /* Mobile-friendly card spacing */
+  @media (max-width: 640px) {
+    .mobile-compact {
+      padding: 1rem !important;
+    }
+    
+    .mobile-compact-spacing > * + * {
+      margin-top: 0.75rem !important;
     }
   }
 }

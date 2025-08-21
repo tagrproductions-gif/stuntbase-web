@@ -33,6 +33,17 @@ async function retryApiCall<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T>
 }
 
 export async function POST(request: NextRequest) {
+  // Check authentication first
+  const supabase = createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  
+  if (!user) {
+    return NextResponse.json(
+      { error: 'Authentication required. Please sign up or log in to use the chat feature.' },
+      { status: 401 }
+    )
+  }
+
   let conversationHistory: any[] = []
   let message = ''
   
