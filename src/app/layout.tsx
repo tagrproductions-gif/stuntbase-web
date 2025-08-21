@@ -6,6 +6,7 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://stuntpitch.com'),
   title: 'StuntPitch - Stunt Performer Directory',
   description: 'Connect stunt performers with casting directors and coordinators. Find the perfect talent for your project with AI-powered search.',
   openGraph: {
