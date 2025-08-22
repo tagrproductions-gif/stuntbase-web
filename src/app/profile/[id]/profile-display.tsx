@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
@@ -30,6 +30,7 @@ interface ProfileDisplayProps {
 
 export function ProfileDisplay({ profile, isOwner }: ProfileDisplayProps) {
   const originalPhotos = profile.profile_photos || []
+  const carouselRef = useRef<HTMLDivElement>(null)
   
   // Helper function to get location display name
   const getLocationDisplay = (structuredLocation: string | null, fallbackLocation: string | null) => {
@@ -107,6 +108,50 @@ export function ProfileDisplay({ profile, isOwner }: ProfileDisplayProps) {
   const { photos: allPhotos, primaryIndex } = arrangePhotosWithPrimaryInCenter(originalPhotos)
   
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(primaryIndex)
+  const [viewportDimensions, setViewportDimensions] = useState({
+    width: typeof window !== 'undefined' ? window.innerWidth : 1024,
+    height: typeof window !== 'undefined' ? window.innerHeight : 768
+  })
+
+  // Track viewport dimensions for dynamic sizing
+  useEffect(() => {
+    const updateViewportDimensions = () => {
+      if (typeof window !== 'undefined') {
+        setViewportDimensions({
+          width: window.innerWidth,
+          height: window.innerHeight
+        })
+      }
+    }
+
+    updateViewportDimensions()
+    window.addEventListener('resize', updateViewportDimensions)
+    return () => window.removeEventListener('resize', updateViewportDimensions)
+  }, [])
+
+  // Calculate dynamic dimensions based on viewport
+  const getDynamicDimensions = () => {
+    const { width, height } = viewportDimensions
+    
+    // Photo width as percentage of viewport width
+    const photoWidth = Math.max(120, Math.min(280, width * 0.25)) // 25% of viewport width, min 120px, max 280px
+    const photoHeight = photoWidth * 1.4 // Maintain aspect ratio
+    
+    // Spacing between photos as percentage of photo width
+    const spacing = photoWidth * 0.7 // 70% of photo width for spacing
+    
+    // Scale factors based on screen size
+    const activeScale = width < 640 ? 1.1 : width < 768 ? 1.15 : 1.2
+    const inactiveScale = width < 640 ? 0.8 : width < 768 ? 0.85 : 0.9
+    
+    return {
+      photoWidth,
+      photoHeight,
+      spacing,
+      activeScale,
+      inactiveScale
+    }
+  }
 
   const getProficiencyColor = (level: string) => {
     switch (level) {
@@ -126,41 +171,108 @@ export function ProfileDisplay({ profile, isOwner }: ProfileDisplayProps) {
     setCurrentPhotoIndex((prev) => (prev - 1 + allPhotos.length) % allPhotos.length)
   }
 
+  // Touch gesture handling
+  const touchStartX = useRef<number>(0)
+  const touchEndX = useRef<number>(0)
+  const minSwipeDistance = 50
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX
+  }
+
+  const handleTouchEnd = () => {
+    if (!touchStartX.current || !touchEndX.current) return
+    
+    const distance = touchStartX.current - touchEndX.current
+    const isLeftSwipe = distance > minSwipeDistance
+    const isRightSwipe = distance < -minSwipeDistance
+
+    if (isLeftSwipe && allPhotos.length > 0) {
+      nextPhoto()
+    }
+    if (isRightSwipe && allPhotos.length > 0) {
+      prevPhoto()
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
       
       <div className="max-w-7xl mx-auto">
         {/* Large Photo Carousel */}
-        {allPhotos.length > 0 && (
-          <div className="relative h-[50vh] overflow-hidden bg-background">
+        {allPhotos.length > 0 && (() => {
+          const dimensions = getDynamicDimensions()
+          const carouselHeight = Math.max(200, dimensions.photoHeight * dimensions.activeScale + 40) // Add padding
+          
+          return (
+          <div 
+            className="relative overflow-hidden bg-background"
+            style={{ height: carouselHeight }}
+          >
             <div className="flex items-center justify-center h-full">
-              <div className="relative w-full max-w-6xl mx-auto">
-                <div className="flex items-center justify-center space-x-4 px-8">
+              <div 
+                ref={carouselRef}
+                className="relative w-full max-w-6xl mx-auto"
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+              >
+                <div className="flex items-center justify-center px-4">
                   {allPhotos.map((photo: any, index: number) => {
                     const offset = index - currentPhotoIndex
                     const isActive = index === currentPhotoIndex
+                    const dimensions = getDynamicDimensions()
                     
-                    let translateX = offset * 240 // Better spacing for consistent appearance
-                    let scale = isActive ? 1.2 : 0.85 // Slightly larger non-active photos for better consistency
+                    // Dynamic spacing and scaling based on viewport
+                    let translateX = offset * dimensions.spacing
+                    let scale = isActive ? dimensions.activeScale : dimensions.inactiveScale
                     let zIndex = isActive ? 10 : Math.max(0, 5 - Math.abs(offset))
-                    let opacity = Math.abs(offset) <= 2 ? (isActive ? 1 : 0.75) : 0 // Slightly more opacity for side photos
                     
+                    // Smoother opacity and blur transitions for better mobile experience
+                    let opacity = 0
+                    let blur = 0
+                    if (Math.abs(offset) === 0) {
+                      opacity = 1 // Active photo fully visible
+                      blur = 0
+                    } else if (Math.abs(offset) === 1) {
+                      opacity = 0.85 // Adjacent photos highly visible
+                      blur = 0.5
+                    } else if (Math.abs(offset) === 2) {
+                      opacity = 0.4 // Side photos partially visible
+                      blur = 1
+                    } else if (Math.abs(offset) === 3) {
+                      opacity = 0.15 // Far photos barely visible for smooth transition
+                      blur = 2
+                    } else {
+                      opacity = 0 // Photos too far away are invisible
+                      blur = 3
+                    }
 
-                    
                     return (
                       <div
                         key={photo.id}
-                        className="absolute transition-all duration-500 ease-out cursor-pointer"
+                        className="absolute transition-all duration-700 ease-in-out cursor-pointer"
                         style={{
                           transform: `translateX(${translateX}px) scale(${scale})`,
                           zIndex,
                           opacity,
+                          filter: `blur(${blur}px)`,
                         }}
                         onClick={() => setCurrentPhotoIndex(index)}
                       >
-                        <div className="relative w-56 h-80 rounded-xl overflow-hidden shadow-2xl bg-card">
-                  <Image
+                        <div 
+                          className="relative rounded-xl overflow-hidden shadow-2xl bg-card"
+                          style={{
+                            width: dimensions.photoWidth,
+                            height: dimensions.photoHeight
+                          }}
+                        >
+                          <Image
                             src={photo.file_path}
                             alt={`${profile.full_name} - Photo ${index + 1}`}
                             fill
@@ -174,9 +286,7 @@ export function ProfileDisplay({ profile, isOwner }: ProfileDisplayProps) {
                       </div>
                     )
                   })}
-                  </div>
-                
-
+                </div>
               </div>
             </div>
             
@@ -193,7 +303,8 @@ export function ProfileDisplay({ profile, isOwner }: ProfileDisplayProps) {
               </div>
             )}
           </div>
-        )}
+          )
+        })()}
 
         {/* No Photos Placeholder */}
         {allPhotos.length === 0 && (

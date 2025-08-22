@@ -561,6 +561,36 @@
     touch-action: manipulation;
   }
 
+  /* Borderless mobile chat styling */
+  @media (max-width: 768px) {
+    .mobile-borderless-chat {
+      border: none !important;
+      box-shadow: none !important;
+      background: transparent !important;
+      border-radius: 0 !important;
+    }
+    
+    .mobile-borderless-chat .card {
+      border: none !important;
+      box-shadow: none !important;
+      background: transparent !important;
+    }
+
+    /* Ensure proper mobile scrolling */
+    .mobile-chat-container .overflow-y-auto {
+      -webkit-overflow-scrolling: touch !important;
+      overscroll-behavior: contain !important;
+      scroll-behavior: smooth !important;
+      height: 100% !important;
+    }
+    
+    /* Fix flex container scrolling on mobile */
+    .mobile-chat-container .flex-1 {
+      min-height: 0 !important;
+      flex-shrink: 1 !important;
+    }
+  }
+
   /* Mobile-friendly card spacing */
   @media (max-width: 640px) {
     .mobile-compact {
@@ -631,6 +661,7 @@
       max-height: calc(100dvh - 4rem);
       max-height: calc(100vh - 4rem);
       transition: all 0.7s ease-in-out;
+      overflow: hidden; /* Prevent overflow on mobile */
     }
 
     /* Account for mobile tab navigation */

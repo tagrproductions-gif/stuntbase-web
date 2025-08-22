@@ -53,7 +53,24 @@ export default function HomePage() {
   const [photosVisible, setPhotosVisible] = useState(false)
   const [selectedProfileIndex, setSelectedProfileIndex] = useState<number | null>(null)
   const [scrollPosition, setScrollPosition] = useState(0)
+  
+  // Carousel touch interaction states
+  const [carouselOffset, setCarouselOffset] = useState(0)
+  const [isCarouselPaused, setIsCarouselPaused] = useState(false)
+  const [isManualControl, setIsManualControl] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+  const [animationStartTime, setAnimationStartTime] = useState(Date.now())
+  const [isDragging, setIsDragging] = useState(false)
+  
   const messagesContainerRef = useRef<HTMLDivElement>(null)
+  const carouselRef = useRef<HTMLDivElement>(null)
+  const touchStartX = useRef<number>(0)
+  const touchEndX = useRef<number>(0)
+  const initialOffset = useRef<number>(0)
+  const currentOffsetRef = useRef<number>(0)
+  const animationRef = useRef<number>(0)
+  const pauseTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  
   const searchParams = useSearchParams()
   const router = useRouter()
 
@@ -66,6 +83,32 @@ export default function HomePage() {
       return () => clearTimeout(timer)
     }
   }, [searchParams])
+
+  // Mobile detection
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768
+      setIsMobile(mobile)
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (pauseTimeoutRef.current) {
+        clearTimeout(pauseTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    currentOffsetRef.current = carouselOffset
+  }, [carouselOffset])
 
   // Fetch random profiles for carousel
   useEffect(() => {
@@ -216,6 +259,98 @@ export default function HomePage() {
     setSelectedProfileIndex(index)
   }
 
+  // Calculate current animation position based on time elapsed
+  const getCurrentAnimationPosition = () => {
+    const elapsed = Date.now() - animationStartTime
+    const animationDuration = 30000 // 30 seconds for full cycle
+    const progress = (elapsed % animationDuration) / animationDuration
+    return progress * -50 // -50% is the full translation (from CSS)
+  }
+
+  // Carousel touch handlers for mobile
+  const handleCarouselTouchStart = (e: React.TouchEvent) => {
+    if (!isMobile) return
+    
+    e.preventDefault() // Prevent scrolling during touch
+    
+    touchStartX.current = e.touches[0].clientX
+    touchEndX.current = e.touches[0].clientX
+    
+    // Capture current animation position
+    const currentPosition = getCurrentAnimationPosition()
+    initialOffset.current = currentPosition
+    currentOffsetRef.current = currentPosition
+    
+    setCarouselOffset(currentPosition)
+    setIsCarouselPaused(true)
+    setIsManualControl(true)
+    setIsDragging(true)
+    
+    // Clear any existing pause timeout
+    if (pauseTimeoutRef.current) {
+      clearTimeout(pauseTimeoutRef.current)
+    }
+  }
+
+  const handleCarouselTouchMove = (e: React.TouchEvent) => {
+    if (!isMobile || !isDragging) return
+    
+    e.preventDefault()
+    touchEndX.current = e.touches[0].clientX
+    
+    // Calculate drag distance and convert to percentage
+    const dragDistance = touchStartX.current - touchEndX.current
+    const containerWidth = carouselRef.current?.offsetWidth || 1000
+    const dragPercent = (dragDistance / containerWidth) * 100
+    
+    // Apply real-time drag feedback
+    const newOffset = initialOffset.current - dragPercent
+    currentOffsetRef.current = newOffset
+    setCarouselOffset(newOffset)
+  }
+
+  const handleCarouselTouchEnd = () => {
+    if (!isMobile || !isDragging) return
+    
+    setIsDragging(false)
+    
+    const distance = touchStartX.current - touchEndX.current
+    const minSwipeDistance = 30 // Reduced for better responsiveness
+    const isLeftSwipe = distance > minSwipeDistance
+    const isRightSwipe = distance < -minSwipeDistance
+
+    // Apply momentum based on swipe speed/distance
+    let finalOffset = currentOffsetRef.current
+    
+    if (isLeftSwipe) {
+      // Add extra momentum for left swipe
+      finalOffset -= 5
+    } else if (isRightSwipe) {
+      // Add extra momentum for right swipe  
+      finalOffset += 5
+    }
+    
+    currentOffsetRef.current = finalOffset
+    setCarouselOffset(finalOffset)
+
+    // Resume auto-scroll after a delay
+    pauseTimeoutRef.current = setTimeout(() => {
+      // Use the ref value to get the actual current position
+      const currentPos = currentOffsetRef.current
+      const normalizedPos = ((currentPos % 50) + 50) % 50 // Handle negative values
+      const newProgress = normalizedPos / 50
+      const newStartTime = Date.now() - (newProgress * 30000)
+      
+      setAnimationStartTime(newStartTime)
+      setIsCarouselPaused(false)
+      setIsManualControl(false)
+    }, 2000) // Reduced timeout for faster resume
+    
+    // Reset touch coordinates
+    touchStartX.current = 0
+    touchEndX.current = 0
+  }
+
   // Restore scroll position after transition to full-screen
   useEffect(() => {
     if (hasSearched && messagesContainerRef.current && scrollPosition > 0) {
@@ -288,7 +423,7 @@ export default function HomePage() {
 
       <div className={`transition-all duration-700 ease-in-out ${
         hasSearched 
-          ? 'mobile-chat-container min-h-0 pb-28' 
+          ? 'mobile-chat-container min-h-0 pb-24' 
           : 'max-w-4xl mx-auto min-h-[60vh]'
       }`}>
 
@@ -332,12 +467,12 @@ export default function HomePage() {
               ? 'flex-1 flex flex-col p-2 sm:p-4 h-full'
               : 'px-4 mt-4 sm:mt-8'
           }`}>
-            <Card className={`${hasSearched ? 'flex-1 flex flex-col border-b-2 border-border shadow-lg bg-card' : 'depth-card'}`}>
-              <CardContent className={`${hasSearched ? 'p-4 flex-1 flex flex-col' : 'p-4 sm:p-6'}`}>
+            <Card className={`${hasSearched ? 'flex-1 flex flex-col bg-transparent border-0 shadow-none' : 'depth-card'}`}>
+              <CardContent className={`${hasSearched ? 'p-2 sm:p-4 flex-1 flex flex-col h-full' : 'p-4 sm:p-6'}`}>
               {/* Messages */}
               <div 
                 ref={messagesContainerRef}
-                className={`space-y-4 overflow-y-auto ${hasSearched ? 'flex-1 pb-20' : 'max-h-96 mb-4 sm:mb-6'}`}
+                className={`space-y-4 overflow-y-auto ${hasSearched ? 'flex-1 pb-20 min-h-0' : 'max-h-96 mb-4 sm:mb-6'}`}
               >
                 {messages.length === 0 && !hasSearched && (
                   <div className="text-center py-8 text-muted-foreground reveal reveal-3">
@@ -569,35 +704,53 @@ export default function HomePage() {
       {/* Profile Carousel - only show when not searched */}
       {!hasSearched && displayProfiles.length > 0 && (
         <div className="max-w-6xl mx-auto px-4 py-6 reveal reveal-3">
-          <div className="profile-carousel">
-            <div className="carousel-track">
+          <div 
+            className="profile-carousel"
+            onTouchStart={handleCarouselTouchStart}
+            onTouchMove={handleCarouselTouchMove}
+            onTouchEnd={handleCarouselTouchEnd}
+            ref={carouselRef}
+          >
+            <div 
+              className={`carousel-track ${isManualControl ? 'manual-control' : ''}`}
+              style={{
+                animationPlayState: isCarouselPaused ? 'paused' : 'running',
+                ...(isManualControl && {
+                  animation: 'none',
+                  transform: `translateX(${carouselOffset}%)`,
+                  transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+                })
+              }}
+            >
               {/* Display pre-generated profiles to avoid re-rendering on input changes */}
               {displayProfiles.map((profile, index) => (
                 <div key={`${profile.id}-${index}`} className="carousel-item">
-                  <Card className="overflow-hidden border border-primary/10 hover:border-primary/30 transition-all duration-300">
-                    <div className="aspect-[3/4] relative bg-muted">
-                      {(() => {
-                        const primaryPhoto = getPrimaryPhoto(profile);
-                        return primaryPhoto ? (
-                          <Image
-                            src={primaryPhoto.file_path}
-                            alt={profile.full_name}
-                            fill
-                            className="object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-muted flex items-center justify-center">
-                            <User className="w-12 h-12 text-muted-foreground" />
-                          </div>
-                        );
-                      })()}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                      <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
-                        <h3 className="font-semibold text-sm leading-tight mb-1 profile-overlay-text">{profile.full_name}</h3>
-                        <p className="text-xs text-white/80 profile-overlay-text-80">{profile.location}</p>
+                  <Link href={`/profile/${profile.id}`}>
+                    <Card className="overflow-hidden border border-primary/10 hover:border-primary/30 transition-all duration-300">
+                      <div className="aspect-[3/4] relative bg-muted">
+                        {(() => {
+                          const primaryPhoto = getPrimaryPhoto(profile);
+                          return primaryPhoto ? (
+                            <Image
+                              src={primaryPhoto.file_path}
+                              alt={profile.full_name}
+                              fill
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-muted flex items-center justify-center">
+                              <User className="w-12 h-12 text-muted-foreground" />
+                            </div>
+                          );
+                        })()}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                        <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
+                          <h3 className="font-semibold text-sm leading-tight mb-1 profile-overlay-text">{profile.full_name}</h3>
+                          <p className="text-xs text-white/80 profile-overlay-text-80">{profile.location}</p>
+                        </div>
                       </div>
-                    </div>
-                  </Card>
+                    </Card>
+                  </Link>
                 </div>
               ))}
             </div>

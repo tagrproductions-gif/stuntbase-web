@@ -168,10 +168,17 @@ export async function queryWithStructuredFilters(parsedQuery: ParsedQuery): Prom
       console.log(`🗄️ After flexible skills filter: ${filteredProfiles.length} profiles`)
     }
 
-    // Sort profiles by completeness (more complete profiles first)
+    // Sort profiles by completeness with randomization for equal scores
     filteredProfiles.sort((a, b) => {
       const scoreA = calculateProfileCompleteness(a)
       const scoreB = calculateProfileCompleteness(b)
+      
+      // If scores are equal, randomize the order for fair exposure
+      if (scoreA === scoreB) {
+        return Math.random() - 0.5
+      }
+      
+      // Otherwise, sort by completeness (higher scores first)
       return scoreB - scoreA
     })
 

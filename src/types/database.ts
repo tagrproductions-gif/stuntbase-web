@@ -49,6 +49,9 @@ export interface Database {
           waist: number | null
           is_public: boolean
           view_count: number | null
+          subscription_tier: string | null
+          subscription_expires_at: string | null
+          subscription_updated_at: string | null
           created_at: string
           updated_at: string
         }

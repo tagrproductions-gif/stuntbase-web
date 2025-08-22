@@ -22,14 +22,15 @@ export async function generateCastingResponse(
   originalMessage: string,
   parsedQuery: ParsedQuery,
   queryResult: QueryResult,
-  conversationHistory: any[] = []
+  conversationHistory: any[] = [],
+  resumeAnalyses: any[] = []
 ): Promise<CastingResponse> {
   
   // Build context about the search
   const searchContext = buildSearchContext(parsedQuery, queryResult)
   
-  // Build performer profiles for Claude
-  const performerProfiles = buildPerformerProfiles(queryResult.profiles)
+  // Build performer profiles for Claude (already randomized for equal scores in structured-query.ts)
+  const performerProfiles = buildPerformerProfiles(queryResult.profiles, resumeAnalyses)
   
   // Build conversation context for more natural responses
   const recentContext = conversationHistory
@@ -63,31 +64,57 @@ TONE & STYLE:
 - Reference the conversation context naturally if it exists
 - Be warm and professional, like you're building an ongoing relationship
 - Emphasize WHY each person could work (training potential, similar experience, etc.)
-- Keep responses conversational and focused (2-3 sentences max)
+- Use clean emoji-based formatting for easy reading (NO markdown symbols)
 - Present as "excellent options" or "strong candidates"
 - If this is a follow-up search, acknowledge their previous requests
 
 CRITICAL RULES:
 - ONLY use the EXACT FULL NAMES from the performer list above - NEVER make up or modify names
-- In your response, mention only the TOP 3-4 performers maximum in the chat
+- Present TOP 3-4 performers maximum using clean emoji-based format
+- When multiple performers match equally well, vary which ones you highlight (don't always pick the first ones listed)
 - **MANDATORY**: ALWAYS end your response with ALL profile IDs in this EXACT format: [PROFILES: id1,id2,id3,id4,etc]
 - If no suitable matches exist, be honest and suggest broadening criteria
 - Reference their project needs and show you remember their requirements
 - Focus on adaptability and training potential
 
-RESPONSE EXAMPLES:
-- First search: "I found some great options for your project! Brandon Martinez would be perfect because of his gymnastics background and martial arts skills. Qissette Valentin also looks promising with her SAG-AFTRA status. [PROFILES: prof123,prof456]"
-- Follow-up search: "Building on what we discussed, here are some performers who could work well. Sarah Chen fits your criteria because... [PROFILES: prof789,prof101]"
-- No matches: "I couldn't find exact matches for those specific requirements, but if you're open to expanding the location, I have some strong candidates who could work well. [PROFILES: prof202,prof303]"
+RESPONSE FORMAT EXAMPLE:
+I found some excellent options for your project! Here are my top recommendations:
 
-**CRITICAL**: Your response MUST end with [PROFILES: ...] containing the actual profile IDs from the list above. This is required for the UI to display profile cards.
+🎬 Sarah Chen
+📍 Los Angeles, CA • 5'7", 130 lbs, Asian ethnicity
+⭐ Key Skills: Martial Arts, Wire Work, Gymnastics
+🎥 Experience: Worked on "John Wick 4" as stunt double, 8 years experience
+✨ Why Perfect: Her martial arts background and wire work experience make her ideal for action sequences
 
-FORMAT: Natural conversation + MANDATORY profile IDs at the end.`
+🎬 Marcus Torres
+📍 Atlanta, GA • 5'9", 165 lbs, Hispanic ethnicity
+⭐ Key Skills: Precision Driving, Firearms, Motorcycle
+🎥 Experience: Fast & Furious franchise stunt driver, 12 years experience
+✨ Why Perfect: Extensive driving experience and firearms training match your requirements
+
+🎬 Brandon Martinez
+📍 New York, NY • 6'0", 180 lbs, SAG-AFTRA member
+⭐ Key Skills: Gymnastics, Combat, Parkour
+✨ Why Perfect: His gymnastics foundation provides excellent body control and adaptability
+
+[PROFILES: prof123,prof456,prof789]
+
+CLEAN FORMATTING RULES:
+- Start with a brief intro line
+- Use 🎬 Name (no markdown symbols) for each performer heading
+- Use emoji prefixes: 📍 Location • 🎬 Physical, ⭐ Skills, 🎥 Experience, ✨ Why Perfect
+- Keep explanations concise (1-2 lines per section)
+- Include resume insights when available (e.g., specific credits)
+- Limit to TOP 3-4 performers to avoid overwhelming
+- Always end with [PROFILES: ...] format
+- NO markdown symbols (**, ##, -, etc.) - use clean text with emojis only
+
+**CRITICAL**: Your response MUST end with [PROFILES: ...] containing the actual profile IDs from the list above. This is required for the UI to display profile cards.`
 
   try {
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
-      max_tokens: 200,
+      max_tokens: 600, // Increased for structured markdown formatting
       messages: [{
         role: 'user',
         content: prompt
@@ -182,12 +209,14 @@ function buildSearchContext(parsedQuery: ParsedQuery, queryResult: QueryResult):
   return context.join('\n')
 }
 
-function buildPerformerProfiles(profiles: any[]): string {
+function buildPerformerProfiles(profiles: any[], resumeAnalyses: any[] = []): string {
   if (profiles.length === 0) {
     return "No performers found matching the specified criteria."
   }
 
   return profiles.map(profile => {
+    // Find resume analysis for this profile
+    const resumeData = resumeAnalyses.find(r => r.profileId === profile.id)
     // Get primary location display
     const primaryLocation = profile.primary_location_structured 
       ? findLocationByValue(profile.primary_location_structured)?.label || profile.primary_location_structured
@@ -250,6 +279,26 @@ function buildPerformerProfiles(profiles: any[]): string {
 
     if (profile.resume_url) {
       profileSections.push(`Resume: Available`)
+    }
+
+    // 📄 ADD RESUME INSIGHTS (tier-aware)
+    if (resumeData?.analyzed) {
+      profileSections.push(`🎬 RESUME HIGHLIGHTS (${resumeData.tier.toUpperCase()} TIER):`)
+      if (resumeData.relevantExperience.length > 0) {
+        profileSections.push(`  Relevant Experience: ${resumeData.relevantExperience.join(', ')}`)
+      }
+      if (resumeData.notableCredits.length > 0) {
+        profileSections.push(`  Notable Credits: ${resumeData.notableCredits.join(', ')}`)
+      }
+      if (resumeData.yearsExperience > 0) {
+        profileSections.push(`  Total Experience: ${resumeData.yearsExperience} years`)
+      }
+      if (resumeData.skillsFromResume.length > 0) {
+        profileSections.push(`  Skills from Resume: ${resumeData.skillsFromResume.join(', ')}`)
+      }
+      profileSections.push(`  Relevance Score: ${(resumeData.relevanceScore * 100).toFixed(0)}%`)
+    } else if (resumeData?.reason) {
+      profileSections.push(`📋 Resume Analysis: ${resumeData.reason}`)
     }
 
     return profileSections.join('\n') + '\n---'

@@ -133,9 +133,19 @@ export async function POST(request: NextRequest) {
         filtersApplied: queryResult.filtersApplied
       })
       
-      // STAGE 3: Generate casting assistant response
-      console.log('🎭 AGENT 2: Generating casting response...')
-      const castingResponse = await generateCastingResponse(message, parsedQuery, queryResult, conversationHistory)
+      // STAGE 3: Resume analysis for top performers (tier-aware)
+      console.log('📄 AGENT 3: Analyzing resumes...')
+      const { analyzeEligibleResumes } = await import('@/lib/agents/resume-analyzer')
+      const resumeAnalyses = await analyzeEligibleResumes(queryResult.profiles, message)
+      console.log('✅ AGENT 3 Result:', {
+        totalProfiles: queryResult.profiles.length,
+        analyzedCount: resumeAnalyses.filter(r => r.analyzed).length,
+        eligibleCount: resumeAnalyses.length
+      })
+      
+      // STAGE 4: Generate enhanced casting assistant response
+      console.log('🎭 AGENT 2: Generating enhanced casting response...')
+      const castingResponse = await generateCastingResponse(message, parsedQuery, queryResult, conversationHistory, resumeAnalyses)
       console.log('✅ AGENT 2 Result:', {
         responseLength: castingResponse.response.length,
         profileCount: castingResponse.profileIds.length
@@ -155,15 +165,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         response: castingResponse.response,
         profiles: matchedProfiles,
+        resumeInsights: resumeAnalyses, // NEW: Resume analysis results
         conversationHistory: [
           ...conversationHistory.slice(-4),
           { role: 'user', content: message },
           { role: 'assistant', content: castingResponse.response }
         ],
-        searchStats: castingResponse.searchStats,
+        searchStats: {
+          ...castingResponse.searchStats,
+          resumeAnalysis: {
+            totalEligible: resumeAnalyses.length,
+            analyzedCount: resumeAnalyses.filter(r => r.analyzed).length,
+            tierBreakdown: resumeAnalyses.reduce((acc, r) => {
+              acc[r.tier] = (acc[r.tier] || 0) + 1
+              return acc
+            }, {} as Record<string, number>)
+          }
+        },
         parsedQuery: parsedQuery,
         intentAnalysis: intentAnalysis,
-        pipeline: 'search-mode'
+        pipeline: 'search-with-resume-analysis'
       })
       
     } else {

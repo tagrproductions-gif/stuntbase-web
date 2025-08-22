@@ -20,13 +20,22 @@ export function Navbar() {
     setMobileMenuOpen(false)
   }
 
+  const handleLogoClick = () => {
+    // Force a full page refresh when clicking the logo
+    // This resets the chat interface back to homepage state
+    if (window.location.pathname === '/') {
+      window.location.reload()
+    }
+    closeMobileMenu()
+  }
+
   return (
     <nav className="border-b border-border bg-background/95 backdrop-blur-md sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex items-center">
-            <Link href="/" className="flex items-center space-x-2 sm:space-x-3" onClick={closeMobileMenu}>
+            <Link href="/" className="flex items-center space-x-2 sm:space-x-3" onClick={handleLogoClick}>
               <Image
                 src="/logo.png"
                 alt="StuntPitch Logo"
