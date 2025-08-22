@@ -163,7 +163,7 @@ Return ONLY valid JSON (no explanation, no other text):
     return {
       gender: null,
       location: null,
-      ethnicity: null,
+      ethnicities: null,
       height_min: null,
       height_max: null,
       weight_min: null,
