@@ -1,45 +1,26 @@
 {
-  "name": "stunt-ghost",
-  "version": "0.1.0",
+  "name": "stuntpitch-monorepo",
+  "version": "1.0.0",
   "private": true,
+  "workspaces": [
+    "web",
+    "mobile",
+    "shared"
+  ],
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "generate-embeddings": "npx tsx src/scripts/generate-embeddings.ts",
-    "generate-embeddings:profile": "npx tsx src/scripts/generate-embeddings.ts --profile="
-  },
-  "dependencies": {
-    "@anthropic-ai/sdk": "^0.60.0",
-    "@hookform/resolvers": "^3.3.2",
-    "@radix-ui/react-alert-dialog": "^1.1.15",
-    "@supabase/ssr": "^0.0.10",
-    "@supabase/supabase-js": "^2.39.0",
-    "@types/node": "^20",
-    "@types/react": "^18",
-    "@types/react-dom": "^18",
-    "autoprefixer": "^10.0.1",
-    "browser-image-compression": "^2.0.2",
-    "class-variance-authority": "^0.7.0",
-    "clsx": "^2.0.0",
-    "dotenv": "^17.2.1",
-    "lucide-react": "^0.294.0",
-    "next": "14.0.4",
-    "openai": "^4.104.0",
-    "postcss": "^8",
-    "react": "^18",
-    "react-dom": "^18",
-    "react-hook-form": "^7.48.2",
-    "sharp": "^0.34.3",
-    "tailwind-merge": "^2.2.0",
-    "tailwindcss": "^3.3.0",
-    "typescript": "^5",
-    "zod": "^3.22.4"
+    "web:dev": "cd web && npm run dev",
+    "web:build": "cd web && npm run build",
+    "web:start": "cd web && npm run start",
+    "mobile:dev": "cd mobile && npx expo start",
+    "mobile:ios": "cd mobile && npx expo run:ios",
+    "mobile:android": "cd mobile && npx expo run:android",
+    "mobile:build:ios": "cd mobile && eas build --platform ios",
+    "mobile:build:android": "cd mobile && eas build --platform android",
+    "shared:build": "cd shared && npm run build",
+    "install:all": "npm install && cd web && npm install && cd ../mobile && npm install && cd ../shared && npm install",
+    "clean": "rm -rf node_modules web/node_modules mobile/node_modules shared/node_modules web/.next mobile/.expo"
   },
   "devDependencies": {
-    "eslint": "^8",
-    "eslint-config-next": "14.0.4",
-    "tsx": "^4.20.4"
+    "typescript": "^5.0.0"
   }
 }
