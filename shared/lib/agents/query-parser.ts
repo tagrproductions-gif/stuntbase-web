@@ -9,7 +9,7 @@ const openai = new OpenAI({
 export interface ParsedQuery {
   gender: 'Man' | 'Woman' | 'Non-binary' | 'Other' | null
   location: string | null
-  ethnicity: 'WHITE' | 'BLACK' | 'ASIAN' | 'HISPANIC' | 'MIDDLE_EASTERN' | null
+  ethnicities: ('WHITE' | 'BLACK' | 'ASIAN' | 'HISPANIC' | 'MIDDLE_EASTERN')[] | null
   height_min: number | null
   height_max: number | null
   weight_min: number | null
@@ -32,7 +32,7 @@ export async function parseUserQuery(userMessage: string): Promise<ParsedQuery> 
   // Build ethnic appearance mappings for the prompt with comprehensive aliases
   const ethnicMappings = [
     '- "WHITE" (for: white, caucasian, european, anglo)',
-    '- "BLACK" (for: black, african, african american, afro)',
+    '- "BLACK" (for: black, african, african american, afro, dark skin)',
     '- "ASIAN" (for: asian, chinese, japanese, korean, indian, vietnamese, thai, filipino, south asian, east asian)',
     '- "HISPANIC" (for: hispanic, latino, latina, mexican, spanish, puerto rican, colombian, venezuelan, central american)',
     '- "MIDDLE_EASTERN" (for: middle eastern, arab, persian, iranian, turkish, lebanese, syrian, egyptian, moroccan)'
@@ -51,8 +51,17 @@ EXACT GENDER VALUES (choose one or null):
 EXACT LOCATION CODES (choose one or null):
 ${locationMappings}
 
-EXACT ETHNIC APPEARANCE VALUES (choose one or null):
+EXACT ETHNIC APPEARANCE VALUES (choose multiple values as array or null):
 ${ethnicMappings}
+
+SPECIAL ETHNICITY HANDLING:
+- "POC" or "person of color" → ["BLACK", "HISPANIC", "ASIAN", "MIDDLE_EASTERN"] (everyone except WHITE)
+- "Hispanic or dark skin" → ["BLACK", "HISPANIC"] 
+- "dark skin" or "darker skin" → ["BLACK"]
+- "Hispanic or Black" → ["BLACK", "HISPANIC"]
+- Multiple ethnic terms → combine into array
+- Single ethnic term → single-item array
+- If no ethnicity mentioned → null
 
 EXACT SKILL CATEGORIES (choose from list or empty array):
 - "fight" (for: martial arts, combat, boxing, karate, mma, wrestling, fighting, jiu-jitsu, kickboxing, taekwondo, muay thai, self-defense, action)
@@ -93,6 +102,12 @@ BROAD SEARCH DETECTION (set true if query contains these terms):
 - If query is general like "atlanta performers" or "show me fighters" set broad_search: true
 - If query has specific requirements like "5'8 female fighter" set broad_search: false
 
+CRITICAL VAGUE QUERY HANDLING:
+- For vague queries like "atlanta performers" or "LA talent" → ONLY set location, leave ALL other filters as null
+- For "show me fighters" → ONLY set skills: ["fight"], leave other filters null
+- For "available performers in NYC" → ONLY set location and availability, leave others null
+- DO NOT assume or infer filters that aren't explicitly mentioned
+
 USER QUERY: "${userMessage}"
 
 PARSING RULES:
@@ -106,7 +121,7 @@ Return ONLY valid JSON (no explanation, no other text):
 {
   "gender": "Man|Woman|Non-binary|Other|null",
   "location": "exact-location-code-from-list-above|null",
-  "ethnicity": "WHITE|BLACK|ASIAN|HISPANIC|MIDDLE_EASTERN|null",
+  "ethnicities": ["WHITE","BLACK","ASIAN","HISPANIC","MIDDLE_EASTERN"]|null,
   "height_min": number_in_inches|null,
   "height_max": number_in_inches|null,
   "weight_min": number_in_pounds|null,

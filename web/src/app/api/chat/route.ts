@@ -8,6 +8,7 @@ import { generateCastingResponse } from '@/lib/agents/casting-assistant'
 import { detectUserIntent } from '@/lib/agents/intent-detection'
 import { generateConversationalResponse } from '@/lib/agents/conversational-agent'
 import { detectNameQuery, searchProfilesByName, generateNameBasedResponse } from '@/lib/agents/name-detector'
+import { analyzeEligibleResumes } from '@/lib/agents/resume-analyzer'
 
 // Helper function to retry API calls with exponential backoff
 async function retryApiCall<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
@@ -135,13 +136,18 @@ export async function POST(request: NextRequest) {
       
       // STAGE 3: Resume analysis for top performers (tier-aware)
       console.log('📄 AGENT 3: Analyzing resumes...')
-      const { analyzeEligibleResumes } = await import('@/lib/agents/resume-analyzer')
-      const resumeAnalyses = await analyzeEligibleResumes(queryResult.profiles, message)
-      console.log('✅ AGENT 3 Result:', {
-        totalProfiles: queryResult.profiles.length,
-        analyzedCount: resumeAnalyses.filter(r => r.analyzed).length,
-        eligibleCount: resumeAnalyses.length
-      })
+      let resumeAnalyses: any[] = []
+      try {
+        resumeAnalyses = await analyzeEligibleResumes(queryResult.profiles, message)
+        console.log('✅ AGENT 3 Result:', {
+          totalProfiles: queryResult.profiles.length,
+          analyzedCount: resumeAnalyses.filter(r => r.analyzed).length,
+          eligibleCount: resumeAnalyses.length
+        })
+      } catch (resumeError) {
+        console.error('⚠️ Resume analysis failed, continuing without it:', resumeError)
+        resumeAnalyses = [] // Continue without resume analysis
+      }
       
       // STAGE 4: Generate enhanced casting assistant response
       console.log('🎭 AGENT 2: Generating enhanced casting response...')

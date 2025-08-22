@@ -115,8 +115,6 @@
   /* Profile Carousel Styles */
   .profile-carousel {
     @apply overflow-hidden relative;
-    mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
   }
   
   .carousel-track {
@@ -259,6 +257,17 @@
   }
 }
 
+@keyframes fadeInCard {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 @layer base {
   :root {
     /* Claude Light Theme as default (cream background) */
@@ -371,6 +380,11 @@
   .animate-in {
     animation-name: slideInFromBottom;
     animation-timing-function: ease-out;
+  }
+
+  /* Staggered fade-in animation for profile cards */
+  .animate-fade-in-card {
+    animation: fadeInCard 0.6s ease-out forwards;
   }
 
   /* COMPREHENSIVE: Fix ALL input visibility with theme variables and maximum specificity */

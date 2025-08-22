@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Navbar } from '@/components/navigation/navbar'
 import { 
   User, 
@@ -17,7 +18,9 @@ import {
   Edit,
   ExternalLink,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  FileText,
+  Film
 } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import { findLocationByValue } from '@/lib/constants/locations'
@@ -41,10 +44,18 @@ export function ProfileDisplay({ profile, isOwner }: ProfileDisplayProps) {
     return fallbackLocation
   }
   
-  // Put primary photo in the middle index of the array
+  // Put primary photo in the middle index of the array (only for 5 photos)
   const arrangePhotosWithPrimaryInCenter = (photos: any[]) => {
     if (photos.length <= 1) return { photos, primaryIndex: 0 }
     
+    // For less than 5 photos, use simple left-to-right ordering
+    if (photos.length < 5) {
+      const originalPrimaryIndex = photos.findIndex(photo => photo.is_primary)
+      const primaryIndex = originalPrimaryIndex === -1 ? 0 : originalPrimaryIndex
+      return { photos, primaryIndex }
+    }
+    
+    // For exactly 5 photos, use the center arrangement logic
     const originalPrimaryIndex = photos.findIndex(photo => photo.is_primary)
     
     if (originalPrimaryIndex === -1) {
@@ -108,10 +119,16 @@ export function ProfileDisplay({ profile, isOwner }: ProfileDisplayProps) {
   const { photos: allPhotos, primaryIndex } = arrangePhotosWithPrimaryInCenter(originalPhotos)
   
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(primaryIndex)
+  const [isClient, setIsClient] = useState(false)
   const [viewportDimensions, setViewportDimensions] = useState({
-    width: typeof window !== 'undefined' ? window.innerWidth : 1024,
+    width: typeof window !== 'undefined' ? window.innerWidth : 768, // Use mobile-first default
     height: typeof window !== 'undefined' ? window.innerHeight : 768
   })
+
+  // Handle client-side hydration
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   // Track viewport dimensions for dynamic sizing
   useEffect(() => {
@@ -129,20 +146,43 @@ export function ProfileDisplay({ profile, isOwner }: ProfileDisplayProps) {
     return () => window.removeEventListener('resize', updateViewportDimensions)
   }, [])
 
-  // Calculate dynamic dimensions based on viewport
+  // Calculate dynamic dimensions based on viewport - optimized for mobile
   const getDynamicDimensions = () => {
+    // Use client-side dimensions only after hydration to prevent mismatch
+    if (!isClient) {
+      // Default dimensions for SSR (desktop-first to prevent layout shifts)
+      return {
+        photoWidth: 220,
+        photoHeight: 308,
+        spacing: 154,
+        activeScale: 1.25,
+        inactiveScale: 0.9
+      }
+    }
+    
     const { width, height } = viewportDimensions
     
-    // Photo width as percentage of viewport width
-    const photoWidth = Math.max(120, Math.min(280, width * 0.25)) // 25% of viewport width, min 120px, max 280px
+    // Improved mobile-first photo sizing logic
+    let photoWidth
+    if (width < 640) {
+      // Mobile: Use larger percentage of screen width for better visibility
+      photoWidth = Math.max(180, Math.min(240, width * 0.45)) // 45% of viewport width, min 180px, max 240px
+    } else if (width < 768) {
+      // Tablet: Balanced sizing
+      photoWidth = Math.max(200, Math.min(260, width * 0.35)) // 35% of viewport width
+    } else {
+      // Desktop: Use original logic
+      photoWidth = Math.max(220, Math.min(280, width * 0.25)) // 25% of viewport width
+    }
+    
     const photoHeight = photoWidth * 1.4 // Maintain aspect ratio
     
-    // Spacing between photos as percentage of photo width
-    const spacing = photoWidth * 0.7 // 70% of photo width for spacing
+    // Spacing between photos - adjusted for mobile
+    const spacing = width < 640 ? photoWidth * 0.5 : photoWidth * 0.7 // Tighter spacing on mobile
     
-    // Scale factors based on screen size
-    const activeScale = width < 640 ? 1.1 : width < 768 ? 1.15 : 1.2
-    const inactiveScale = width < 640 ? 0.8 : width < 768 ? 0.85 : 0.9
+    // Scale factors based on screen size - enhanced for mobile
+    const activeScale = width < 640 ? 1.15 : width < 768 ? 1.2 : 1.25
+    const inactiveScale = width < 640 ? 0.85 : width < 768 ? 0.9 : 0.9
     
     return {
       photoWidth,
@@ -240,17 +280,17 @@ export function ProfileDisplay({ profile, isOwner }: ProfileDisplayProps) {
                       opacity = 1 // Active photo fully visible
                       blur = 0
                     } else if (Math.abs(offset) === 1) {
-                      opacity = 0.85 // Adjacent photos highly visible
-                      blur = 0.5
+                      opacity = 0.9 // Adjacent photos more visible (reduced fade)
+                      blur = 0.3
                     } else if (Math.abs(offset) === 2) {
-                      opacity = 0.4 // Side photos partially visible
-                      blur = 1
+                      opacity = 0.6 // Side photos more visible (reduced fade)
+                      blur = 0.7
                     } else if (Math.abs(offset) === 3) {
-                      opacity = 0.15 // Far photos barely visible for smooth transition
-                      blur = 2
+                      opacity = 0.3 // Far photos more visible (reduced fade)
+                      blur = 1.2
                     } else {
                       opacity = 0 // Photos too far away are invisible
-                      blur = 3
+                      blur = 2
                     }
 
                     return (
@@ -353,18 +393,18 @@ export function ProfileDisplay({ profile, isOwner }: ProfileDisplayProps) {
                   )}
               </div>
               
-                              {/* Action Buttons with Resume */}
-              <div className="flex gap-3 justify-center">
+              {/* Action Buttons - All Links as Buttons */}
+              <div className="flex flex-wrap gap-3 justify-center">
                 {profile.resume_url && (
-                  <Button size="default" asChild>
+                  <Button size="default" variant="outline" className="border-2 shadow-lg" asChild>
                     <a href={profile.resume_url} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="mr-2 h-4 w-4" />
+                      <FileText className="mr-2 h-4 w-4" />
                       Resume
                     </a>
                   </Button>
                 )}
                 {profile.email && (
-                  <Button size="default" variant="outline" asChild>
+                  <Button size="default" variant="outline" className="border-2 shadow-lg" asChild>
                     <a href={`mailto:${profile.email}`}>
                       <Mail className="mr-2 h-4 w-4" />
                       Contact Now
@@ -372,10 +412,26 @@ export function ProfileDisplay({ profile, isOwner }: ProfileDisplayProps) {
                   </Button>
                 )}
                 {profile.reel_url && (
-                  <Button size="default" variant="outline" asChild>
+                  <Button size="default" variant="outline" className="border-2 shadow-lg" asChild>
                     <a href={profile.reel_url} target="_blank" rel="noopener noreferrer">
                       <ExternalLink className="mr-2 h-4 w-4" />
-                      View Demo Reel
+                      Demo Reel
+                    </a>
+                  </Button>
+                )}
+                {profile.website && (
+                  <Button size="default" variant="outline" className="border-2 shadow-lg" asChild>
+                    <a href={profile.website} target="_blank" rel="noopener noreferrer">
+                      <Globe className="mr-2 h-4 w-4" />
+                      Website
+                    </a>
+                  </Button>
+                )}
+                {profile.imdb_url && (
+                  <Button size="default" variant="outline" className="border-2 shadow-lg" asChild>
+                    <a href={profile.imdb_url} target="_blank" rel="noopener noreferrer">
+                      <Film className="mr-2 h-4 w-4" />
+                      IMDB
                     </a>
                   </Button>
                 )}
@@ -393,157 +449,148 @@ export function ProfileDisplay({ profile, isOwner }: ProfileDisplayProps) {
           </div>
         </div>
 
-        {/* Clean Professional Layout */}
-        <div className="bg-card px-6 py-8 pb-16">
+        {/* Clean Professional Layout with Cards */}
+        <div className="bg-background px-6 py-8 pb-16">
           <div className="max-w-6xl mx-auto">
             
             {/* Two Column Layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               
               {/* Left Column */}
-              <div className="space-y-8">
+              <div className="space-y-6">
                 
-                {/* Contact Info */}
-                <div>
-                  <h2 className="text-xl font-semibold text-foreground mb-4">Contact Info</h2>
-                  <div className="space-y-3">
-                    {profile.phone && (
-                      <div className="flex justify-between py-1">
-                        <span className="text-muted-foreground">Mobile</span>
-                        <span className="text-foreground">••••••••</span>
-                      </div>
-                    )}
-                    {profile.email && (
-                      <div className="flex justify-between py-1">
-                        <span className="text-muted-foreground">Email</span>
-                        <span className="text-foreground">{profile.email}</span>
-                      </div>
-                    )}
-                    {profile.union_status && (
-                      <div className="flex justify-between py-1">
-                        <span className="text-muted-foreground">Union Status</span>
-                        <span className="text-foreground">{profile.union_status}</span>
-                      </div>
-                    )}
-                    {(profile.primary_location_structured || profile.location) && (
-                      <div className="flex justify-between py-1">
-                        <span className="text-muted-foreground">Primary Location</span>
-                        <span className="text-foreground">{getLocationDisplay(profile.primary_location_structured, profile.location)}</span>
-                      </div>
-                    )}
-                    {(profile.secondary_location_structured || profile.secondary_location) && (
-                      <div className="flex justify-between py-1">
-                        <span className="text-muted-foreground">Secondary Location</span>
-                        <span className="text-foreground">{getLocationDisplay(profile.secondary_location_structured, profile.secondary_location)}</span>
-                      </div>
-                    )}
-                    {profile.travel_radius && profile.travel_radius !== 'local' && (
-                      <div className="flex justify-between py-1">
-                        <span className="text-muted-foreground">Travel Range</span>
-                        <span className="text-foreground">
-                          {profile.travel_radius === '50' ? 'Within 50 miles' :
-                           profile.travel_radius === '100' ? 'Within 100 miles' :
-                           profile.travel_radius === '200' ? 'Within 200 miles' :
-                           profile.travel_radius === 'state' ? 'Statewide' :
-                           profile.travel_radius === 'regional' ? 'Regional' :
-                           profile.travel_radius === 'national' ? 'National' :
-                           profile.travel_radius === 'international' ? 'International' :
-                           profile.travel_radius}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Personal Info */}
-                <div>
-                  <h2 className="text-xl font-semibold text-foreground mb-4">Personal Info</h2>
-                  <div className="space-y-3">
-                    {profile.gender && (
-                      <div className="flex justify-between py-1">
-                        <span className="text-muted-foreground">Identify as</span>
-                        <span className="text-foreground">{profile.gender}</span>
-                      </div>
-                    )}
-                    {profile.ethnicity && (
-                      <div className="flex justify-between py-1">
-                        <span className="text-muted-foreground">Ethnic Appearance</span>
-                        <span className="text-foreground">{getEthnicAppearanceLabel(profile.ethnicity)}</span>
-                      </div>
-                    )}
-                    {profile.imdb_url && (
-                      <div className="flex justify-between py-1">
-                        <span className="text-muted-foreground">IMDB</span>
-                        <a href={profile.imdb_url} target="_blank" rel="noopener noreferrer" 
-                           className="text-primary hover:underline">
-                          View Profile
-                        </a>
-                      </div>
-                    )}
-                    {profile.loan_out_status && (
-                      <div className="flex justify-between py-1">
-                        <span className="text-muted-foreground">Loan Out?</span>
-                        <span className="text-foreground">{profile.loan_out_status}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-            {/* Skills */}
-            {profile.profile_skills && profile.profile_skills.length > 0 && (
-                  <div>
-                    <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
-                    <Star className="h-5 w-5" />
-                    Skills & Specialties
-                    </h2>
-                  <div className="flex flex-wrap gap-2">
-                    {profile.profile_skills.map((skill: any) => (
-                      <Badge
-                        key={skill.id}
-                        variant="outline"
-                          className={`${getProficiencyColor(skill.proficiency_level)} text-sm`}
-                      >
-                          {skill.skills?.name || skill.skill_id} ({skill.proficiency_level})
-                      </Badge>
-                    ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Links */}
-                {(profile.website || profile.reel_url) && (
-                  <div>
-                    <h2 className="text-xl font-semibold text-foreground mb-4">Links</h2>
-                  <div className="space-y-3">
-                      {profile.website && (
+                {/* Contact Info Card */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Phone className="h-5 w-5" />
+                      Contact Info
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {profile.phone && (
                         <div className="flex justify-between py-1">
-                          <span className="text-muted-foreground">Website</span>
-                          <a href={profile.website} target="_blank" rel="noopener noreferrer" 
-                             className="text-primary hover:underline">
-                            Visit Site
-                          </a>
+                          <span className="text-muted-foreground">Mobile</span>
+                          <span className="text-foreground">••••••••</span>
                         </div>
                       )}
-                      {profile.reel_url && (
+                      {profile.email && (
                         <div className="flex justify-between py-1">
-                          <span className="text-muted-foreground">Demo Reel</span>
-                          <a href={profile.reel_url} target="_blank" rel="noopener noreferrer" 
-                             className="text-primary hover:underline">
-                            Watch Reel
-                          </a>
-                          </div>
-                        )}
+                          <span className="text-muted-foreground">Email</span>
+                          <span className="text-foreground">{profile.email}</span>
+                        </div>
+                      )}
+                      {profile.union_status && (
+                        <div className="flex justify-between py-1">
+                          <span className="text-muted-foreground">Union Status</span>
+                          <span className="text-foreground">{profile.union_status}</span>
+                        </div>
+                      )}
+                      {(profile.primary_location_structured || profile.location) && (
+                        <div className="flex justify-between py-1">
+                          <span className="text-muted-foreground">Primary Location</span>
+                          <span className="text-foreground">{getLocationDisplay(profile.primary_location_structured, profile.location)}</span>
+                        </div>
+                      )}
+                      {(profile.secondary_location_structured || profile.secondary_location) && (
+                        <div className="flex justify-between py-1">
+                          <span className="text-muted-foreground">Secondary Location</span>
+                          <span className="text-foreground">{getLocationDisplay(profile.secondary_location_structured, profile.secondary_location)}</span>
+                        </div>
+                      )}
+                      {profile.travel_radius && profile.travel_radius !== 'local' && (
+                        <div className="flex justify-between py-1">
+                          <span className="text-muted-foreground">Travel Range</span>
+                          <span className="text-foreground">
+                            {profile.travel_radius === '50' ? 'Within 50 miles' :
+                             profile.travel_radius === '100' ? 'Within 100 miles' :
+                             profile.travel_radius === '200' ? 'Within 200 miles' :
+                             profile.travel_radius === 'state' ? 'Statewide' :
+                             profile.travel_radius === 'regional' ? 'Regional' :
+                             profile.travel_radius === 'national' ? 'National' :
+                             profile.travel_radius === 'international' ? 'International' :
+                             profile.travel_radius}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Personal Info Card */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <User className="h-5 w-5" />
+                      Personal Info
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {profile.gender && (
+                        <div className="flex justify-between py-1">
+                          <span className="text-muted-foreground">Identify as</span>
+                          <span className="text-foreground">{profile.gender}</span>
+                        </div>
+                      )}
+                      {profile.ethnicity && (
+                        <div className="flex justify-between py-1">
+                          <span className="text-muted-foreground">Ethnic Appearance</span>
+                          <span className="text-foreground">{getEthnicAppearanceLabel(profile.ethnicity)}</span>
+                        </div>
+                      )}
+
+                      {profile.loan_out_status && (
+                        <div className="flex justify-between py-1">
+                          <span className="text-muted-foreground">Loan Out?</span>
+                          <span className="text-foreground">{profile.loan_out_status}</span>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Skills Card */}
+                {profile.profile_skills && profile.profile_skills.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Star className="h-5 w-5" />
+                        Skills & Specialties
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex flex-wrap gap-2">
+                        {profile.profile_skills.map((skill: any) => (
+                          <Badge
+                            key={skill.id}
+                            variant="outline"
+                            className={`${getProficiencyColor(skill.proficiency_level)} text-sm`}
+                          >
+                            {skill.skills?.name || skill.skill_id} ({skill.proficiency_level})
+                          </Badge>
+                        ))}
                       </div>
-                  </div>
+                    </CardContent>
+                  </Card>
                 )}
+
+
               </div>
 
               {/* Right Column */}
-              <div className="space-y-8">
+              <div className="space-y-6">
                 
-                {/* Wardrobe Info */}
-                <div>
-                  <h2 className="text-xl font-semibold text-foreground mb-4">Wardrobe Info</h2>
+                {/* Wardrobe Info Card */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <User className="h-5 w-5" />
+                      Wardrobe Info
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
                   <div className="space-y-3">
                     {profile.hair_color && (
                       <div className="flex justify-between py-1">
@@ -670,28 +717,33 @@ export function ProfileDisplay({ profile, isOwner }: ProfileDisplayProps) {
                         )}
                       </>
                     )}
-                  </div>
-                </div>
-
-                {/* Certifications */}
-                {profile.profile_certifications && profile.profile_certifications.length > 0 && (
-                  <div>
-                    <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
-                      <Shield className="h-5 w-5" />
-                      Certifications
-                    </h2>
-                    <div className="flex flex-wrap gap-2">
-                      {profile.profile_certifications.map((cert: any) => (
-                        <Badge
-                          key={cert.id}
-                          variant="outline"
-                          className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800"
-                        >
-                          {cert.certifications?.name || cert.certification_id}
-                        </Badge>
-                      ))}
                     </div>
-                  </div>
+                  </CardContent>
+                </Card>
+
+                {/* Certifications Card */}
+                {profile.profile_certifications && profile.profile_certifications.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Shield className="h-5 w-5" />
+                        Certifications
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex flex-wrap gap-2">
+                        {profile.profile_certifications.map((cert: any) => (
+                          <Badge
+                            key={cert.id}
+                            variant="outline"
+                            className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800"
+                          >
+                            {cert.certifications?.name || cert.certification_id}
+                          </Badge>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
                 )}
               </div>
             </div>

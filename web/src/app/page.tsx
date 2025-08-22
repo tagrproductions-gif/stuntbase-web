@@ -9,6 +9,7 @@ import { Send, User, Bot, Search, Users, Shield, MessageCircle, Grid3X3, Chevron
 import Link from 'next/link'
 import Image from 'next/image'
 import { Navbar } from '@/components/navigation/navbar'
+import { AIResponse } from '@/components/chat/ai-response'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -54,22 +55,11 @@ export default function HomePage() {
   const [selectedProfileIndex, setSelectedProfileIndex] = useState<number | null>(null)
   const [scrollPosition, setScrollPosition] = useState(0)
   
-  // Carousel touch interaction states
-  const [carouselOffset, setCarouselOffset] = useState(0)
+  // Carousel auto-scroll state
   const [isCarouselPaused, setIsCarouselPaused] = useState(false)
-  const [isManualControl, setIsManualControl] = useState(false)
-  const [isMobile, setIsMobile] = useState(false)
-  const [animationStartTime, setAnimationStartTime] = useState(Date.now())
-  const [isDragging, setIsDragging] = useState(false)
   
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const carouselRef = useRef<HTMLDivElement>(null)
-  const touchStartX = useRef<number>(0)
-  const touchEndX = useRef<number>(0)
-  const initialOffset = useRef<number>(0)
-  const currentOffsetRef = useRef<number>(0)
-  const animationRef = useRef<number>(0)
-  const pauseTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -84,31 +74,11 @@ export default function HomePage() {
     }
   }, [searchParams])
 
-  // Mobile detection
-  useEffect(() => {
-    const checkMobile = () => {
-      const mobile = window.innerWidth < 768
-      setIsMobile(mobile)
-    }
-    
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
-  }, [])
 
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (pauseTimeoutRef.current) {
-        clearTimeout(pauseTimeoutRef.current)
-      }
-    }
-  }, [])
 
-  // Keep ref in sync with state
-  useEffect(() => {
-    currentOffsetRef.current = carouselOffset
-  }, [carouselOffset])
+
+
+
 
   // Fetch random profiles for carousel
   useEffect(() => {
@@ -154,8 +124,13 @@ export default function HomePage() {
     setTypingText('')
     
     for (let i = 0; i <= text.length; i++) {
-      await new Promise(resolve => setTimeout(resolve, 3)) // Much faster - 3ms per character
+      await new Promise(resolve => setTimeout(resolve, 1)) // Even faster - 1ms per character
       setTypingText(text.slice(0, i))
+      
+      // Auto-scroll during typing on mobile
+      if (messagesContainerRef.current && window.innerWidth < 768) {
+        messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight
+      }
     }
     
     setIsTyping(false)
@@ -226,7 +201,27 @@ export default function HomePage() {
         setTimeout(() => {
           setShowPhotos(true)
           // Small delay for smooth fade-in
-          setTimeout(() => setPhotosVisible(true), 100)
+          setTimeout(() => {
+            setPhotosVisible(true)
+            
+            // Scroll to show profile cards with proper padding on mobile
+            if (window.innerWidth < 768 && messagesContainerRef.current) {
+              setTimeout(() => {
+                if (messagesContainerRef.current) {
+                  const container = messagesContainerRef.current
+                  const maxScroll = container.scrollHeight - container.clientHeight
+                  
+                  // Leave some padding (80px) from the bottom to prevent cutting off under menu
+                  const targetScroll = Math.max(0, maxScroll - 80)
+                  
+                  container.scrollTo({
+                    top: targetScroll,
+                    behavior: 'smooth'
+                  })
+                }
+              }, 300) // Slight delay for smooth fade-in effect
+            }
+          }, 100)
         }, 500)
       }
 
@@ -259,96 +254,19 @@ export default function HomePage() {
     setSelectedProfileIndex(index)
   }
 
-  // Calculate current animation position based on time elapsed
-  const getCurrentAnimationPosition = () => {
-    const elapsed = Date.now() - animationStartTime
-    const animationDuration = 30000 // 30 seconds for full cycle
-    const progress = (elapsed % animationDuration) / animationDuration
-    return progress * -50 // -50% is the full translation (from CSS)
-  }
-
-  // Carousel touch handlers for mobile
-  const handleCarouselTouchStart = (e: React.TouchEvent) => {
-    if (!isMobile) return
-    
-    e.preventDefault() // Prevent scrolling during touch
-    
-    touchStartX.current = e.touches[0].clientX
-    touchEndX.current = e.touches[0].clientX
-    
-    // Capture current animation position
-    const currentPosition = getCurrentAnimationPosition()
-    initialOffset.current = currentPosition
-    currentOffsetRef.current = currentPosition
-    
-    setCarouselOffset(currentPosition)
+  // Carousel hover handlers
+  const handleCarouselMouseEnter = () => {
     setIsCarouselPaused(true)
-    setIsManualControl(true)
-    setIsDragging(true)
-    
-    // Clear any existing pause timeout
-    if (pauseTimeoutRef.current) {
-      clearTimeout(pauseTimeoutRef.current)
-    }
   }
 
-  const handleCarouselTouchMove = (e: React.TouchEvent) => {
-    if (!isMobile || !isDragging) return
-    
-    e.preventDefault()
-    touchEndX.current = e.touches[0].clientX
-    
-    // Calculate drag distance and convert to percentage
-    const dragDistance = touchStartX.current - touchEndX.current
-    const containerWidth = carouselRef.current?.offsetWidth || 1000
-    const dragPercent = (dragDistance / containerWidth) * 100
-    
-    // Apply real-time drag feedback
-    const newOffset = initialOffset.current - dragPercent
-    currentOffsetRef.current = newOffset
-    setCarouselOffset(newOffset)
+  const handleCarouselMouseLeave = () => {
+    setIsCarouselPaused(false)
   }
 
-  const handleCarouselTouchEnd = () => {
-    if (!isMobile || !isDragging) return
-    
-    setIsDragging(false)
-    
-    const distance = touchStartX.current - touchEndX.current
-    const minSwipeDistance = 30 // Reduced for better responsiveness
-    const isLeftSwipe = distance > minSwipeDistance
-    const isRightSwipe = distance < -minSwipeDistance
-
-    // Apply momentum based on swipe speed/distance
-    let finalOffset = currentOffsetRef.current
-    
-    if (isLeftSwipe) {
-      // Add extra momentum for left swipe
-      finalOffset -= 5
-    } else if (isRightSwipe) {
-      // Add extra momentum for right swipe  
-      finalOffset += 5
-    }
-    
-    currentOffsetRef.current = finalOffset
-    setCarouselOffset(finalOffset)
-
-    // Resume auto-scroll after a delay
-    pauseTimeoutRef.current = setTimeout(() => {
-      // Use the ref value to get the actual current position
-      const currentPos = currentOffsetRef.current
-      const normalizedPos = ((currentPos % 50) + 50) % 50 // Handle negative values
-      const newProgress = normalizedPos / 50
-      const newStartTime = Date.now() - (newProgress * 30000)
-      
-      setAnimationStartTime(newStartTime)
-      setIsCarouselPaused(false)
-      setIsManualControl(false)
-    }, 2000) // Reduced timeout for faster resume
-    
-    // Reset touch coordinates
-    touchStartX.current = 0
-    touchEndX.current = 0
+  // Click handler for profile navigation
+  const handleProfileClick = (profileId: string) => {
+    // Navigate to profile page
+    router.push(`/profile/${profileId}`)
   }
 
   // Restore scroll position after transition to full-screen
@@ -362,6 +280,23 @@ export default function HomePage() {
       }, 100)
     }
   }, [hasSearched, scrollPosition])
+
+  // Auto-scroll on mobile when messages change (but not during typing)
+  useEffect(() => {
+    if (!isTyping && window.innerWidth < 768 && messagesContainerRef.current && messages.length > 0) {
+      // Small delay to ensure DOM is updated
+      setTimeout(() => {
+        if (messagesContainerRef.current) {
+          const container = messagesContainerRef.current
+          // Only scroll to bottom if no profile cards are showing
+          if (!showPhotos) {
+            container.scrollTop = container.scrollHeight
+          }
+          // If profile cards are showing, the specific scroll logic above handles it
+        }
+      }, 50)
+    }
+  }, [messages, isTyping, showPhotos])
 
   // Mobile viewport handling
   useEffect(() => {
@@ -423,14 +358,14 @@ export default function HomePage() {
 
       <div className={`transition-all duration-700 ease-in-out ${
         hasSearched 
-          ? 'mobile-chat-container min-h-0 pb-24' 
+          ? 'xl:h-[calc(100vh-4rem)] xl:max-h-[calc(100vh-4rem)] xl:flex xl:pb-0 mobile-chat-container min-h-0 pb-24' 
           : 'max-w-4xl mx-auto min-h-[60vh]'
       }`}>
 
         {/* Main Chat Area */}
         <div className={`transition-all duration-700 ease-in-out flex flex-col ${
           hasSearched 
-            ? 'w-full h-full'
+            ? 'xl:w-1/2 xl:h-full xl:border-r xl:border-border w-full h-full'
             : 'w-full px-4 py-8'
         }`}>
           {/* Header - only show when not searched */}
@@ -464,15 +399,15 @@ export default function HomePage() {
           {/* Chat Interface */}
           <div className={`transition-all duration-700 ease-in-out ${
             hasSearched 
-              ? 'flex-1 flex flex-col p-2 sm:p-4 h-full'
+              ? 'flex-1 flex flex-col h-full'
               : 'px-4 mt-4 sm:mt-8'
           }`}>
-            <Card className={`${hasSearched ? 'flex-1 flex flex-col bg-transparent border-0 shadow-none' : 'depth-card'}`}>
-              <CardContent className={`${hasSearched ? 'p-2 sm:p-4 flex-1 flex flex-col h-full' : 'p-4 sm:p-6'}`}>
+            <Card className={`${hasSearched ? 'flex-1 flex flex-col bg-transparent border-0 shadow-none xl:m-4 xl:shadow-md xl:bg-card xl:border xl:h-full xl:max-h-full' : 'depth-card'}`}>
+              <CardContent className={`${hasSearched ? 'flex-1 flex flex-col p-2 sm:p-4 xl:p-6 xl:h-full xl:overflow-hidden' : 'p-4 sm:p-6'}`}>
               {/* Messages */}
               <div 
                 ref={messagesContainerRef}
-                className={`space-y-4 overflow-y-auto ${hasSearched ? 'flex-1 pb-20 min-h-0' : 'max-h-96 mb-4 sm:mb-6'}`}
+                className={`space-y-4 overflow-y-auto ${hasSearched ? 'flex-1 xl:pb-4 pb-20 min-h-0 xl:max-h-[calc(100vh-16rem)]' : 'max-h-96 mb-4 sm:mb-6'}`}
               >
                 {messages.length === 0 && !hasSearched && (
                   <div className="text-center py-8 text-muted-foreground reveal reveal-3">
@@ -499,13 +434,17 @@ export default function HomePage() {
                     )}
                     
                     <div
-                      className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                      className={`${
                         message.role === 'user'
-                          ? 'bg-primary text-primary-foreground ml-auto'
-                          : 'bg-card text-card-foreground shadow-md'
+                          ? 'max-w-xs lg:max-w-md px-4 py-2 rounded-lg bg-primary text-primary-foreground ml-auto'
+                          : 'max-w-2xl px-4 py-3 rounded-lg bg-card text-card-foreground shadow-md'
                       }`}
                     >
-                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                      {message.role === 'user' ? (
+                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                      ) : (
+                        <AIResponse content={message.content} />
+                      )}
                     </div>
 
                     {message.role === 'user' && (
@@ -522,11 +461,12 @@ export default function HomePage() {
                     <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center gentle-pulse">
                       <Bot className="w-5 h-5 text-primary-foreground" />
                     </div>
-                    <div className="bg-card text-card-foreground px-4 py-2 rounded-lg max-w-xs lg:max-w-md shadow-md">
-                      <p className="text-sm whitespace-pre-wrap">
-                        {typingText}<span className="animate-pulse text-primary">|</span>
-                      </p>
-                      {!typingText && (
+                    <div className="bg-card text-card-foreground px-4 py-3 rounded-lg max-w-2xl shadow-md">
+                      {typingText ? (
+                        <div className="animate-in fade-in duration-300">
+                          <AIResponse content={typingText} isTyping={true} />
+                        </div>
+                      ) : (
                         <div className="typing-dots">
                           <span></span>
                           <span></span>
@@ -552,9 +492,9 @@ export default function HomePage() {
                   </div>
                 )}
 
-                {/* Organic Photo Results - Fade in after chat message */}
+                {/* Organic Photo Results - Only show on mobile/tablet, hidden on desktop split-screen */}
                 {showPhotos && profiles.length > 0 && (
-                  <div className={`mt-4 transition-all duration-1000 ease-out ${
+                  <div className={`xl:hidden mt-4 transition-all duration-1000 ease-out ${
                     photosVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
                   }`}>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -633,14 +573,123 @@ export default function HomePage() {
                 </div>
               )}
               </CardContent>
+
+              {/* Desktop Input Bar - Fixed at bottom */}
+              {hasSearched && (
+                <div className="hidden xl:flex items-center gap-3 p-4 border-t border-border bg-card flex-shrink-0">
+                  <div className="flex-1 relative">
+                    <Input
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      placeholder="Ask about more performers..."
+                      disabled={loading}
+                      className="w-full text-base py-3 px-4 pr-12 rounded-full bg-background border-2 border-primary/20 hover:border-primary/40 focus:border-primary/60 transition-all duration-300 shadow-lg focus:shadow-xl"
+                    />
+                  </div>
+                  <Button
+                    onClick={sendMessage}
+                    disabled={loading || !input.trim()}
+                    size="icon"
+                    className="h-12 w-12 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-300 touch-manipulation shrink-0"
+                  >
+                    {loading ? (
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    ) : (
+                      <Send className="w-5 h-5" />
+                    )}
+                  </Button>
+                </div>
+              )}
             </Card>
           </div>
         </div>
+
+        {/* Desktop Profile Cards Panel - Right Side */}
+        {hasSearched && (
+          <div className="hidden xl:flex xl:w-1/2 xl:h-full xl:flex-col xl:overflow-hidden xl:bg-card xl:border-l xl:border-border">
+            <div className="p-4 border-b border-border bg-card sticky top-0 z-10">
+              <h2 className="text-lg font-semibold text-foreground">
+                {profiles.length > 0 ? `Found ${profiles.length} Performers` : 'Search Results'}
+              </h2>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4">
+              {profiles.length > 0 ? (
+                <div className="grid grid-cols-3 gap-3">
+                  {profiles.map((profile, index) => (
+                    <div 
+                      key={profile.id}
+                      className={`group cursor-pointer ${
+                        index < 9 ? 'opacity-0 animate-fade-in-card' : ''
+                      }`}
+                      style={index < 9 ? { animationDelay: `${index * 150}ms`, animationFillMode: 'forwards' } : {}}
+                      onClick={() => handleProfileClick(profile.id)}
+                    >
+                      <Card className="overflow-hidden hover:shadow-lg transition-all duration-200 hover:scale-[1.02]">
+                        <div className="aspect-[4/5] relative bg-muted">
+                          {(() => {
+                            const primaryPhoto = getPrimaryPhoto(profile);
+                            return primaryPhoto ? (
+                              <Image
+                                src={primaryPhoto.file_path}
+                                alt={profile.full_name}
+                                fill
+                                className="object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-muted flex items-center justify-center">
+                                <User className="w-12 h-12 text-muted-foreground" />
+                              </div>
+                            );
+                          })()}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                                                     <div className="absolute bottom-0 left-0 right-0 p-2 text-white">
+                             <h3 className="font-semibold text-xs leading-tight mb-1 profile-overlay-text truncate">
+                               {profile.full_name}
+                             </h3>
+                             {/* Height and Weight in pure white text - no background */}
+                             <div className="text-xs mb-1 profile-overlay-text">
+                               {(profile.height_feet || profile.height_inches) && (
+                                 <span className="mr-2">
+                                   {formatHeight(profile.height_feet || 0, profile.height_inches || 0)}
+                                 </span>
+                               )}
+                               {profile.weight_lbs && (
+                                 <span>
+                                   {profile.weight_lbs} lbs
+                                 </span>
+                               )}
+                             </div>
+                             <p className="text-xs text-white/80 profile-overlay-text-80 truncate">
+                               {profile.location}
+                             </p>
+                           </div>
+                        </div>
+                      </Card>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-full text-center">
+                  <div className="max-w-sm">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
+                      <Search className="w-8 h-8 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-lg font-medium text-foreground mb-2">Ready to Search</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Send a message to find performers and they'll appear here
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Sticky Input Bar - Only show after chat starts */}
+      {/* Sticky Input Bar - Only show after chat starts on mobile/tablet */}
       {hasSearched && (
-        <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border p-4 z-50 safe-area-bottom">
+        <div className="xl:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border p-4 z-50 safe-area-bottom">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center gap-3">
             <div className="flex-1 relative">
@@ -706,27 +755,24 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto px-4 py-6 reveal reveal-3">
           <div 
             className="profile-carousel"
-            onTouchStart={handleCarouselTouchStart}
-            onTouchMove={handleCarouselTouchMove}
-            onTouchEnd={handleCarouselTouchEnd}
+            onMouseEnter={handleCarouselMouseEnter}
+            onMouseLeave={handleCarouselMouseLeave}
             ref={carouselRef}
           >
             <div 
-              className={`carousel-track ${isManualControl ? 'manual-control' : ''}`}
+              className="carousel-track"
               style={{
-                animationPlayState: isCarouselPaused ? 'paused' : 'running',
-                ...(isManualControl && {
-                  animation: 'none',
-                  transform: `translateX(${carouselOffset}%)`,
-                  transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
-                })
+                animationPlayState: isCarouselPaused ? 'paused' : 'running'
               }}
             >
               {/* Display pre-generated profiles to avoid re-rendering on input changes */}
               {displayProfiles.map((profile, index) => (
                 <div key={`${profile.id}-${index}`} className="carousel-item">
-                  <Link href={`/profile/${profile.id}`}>
-                    <Card className="overflow-hidden border border-primary/10 hover:border-primary/30 transition-all duration-300">
+                  <div 
+                    className="cursor-pointer"
+                    onClick={() => handleProfileClick(profile.id)}
+                  >
+                    <Card className="overflow-hidden border border-primary/10 hover:border-primary/30 transition-all duration-300 hover:scale-105">
                       <div className="aspect-[3/4] relative bg-muted">
                         {(() => {
                           const primaryPhoto = getPrimaryPhoto(profile);
@@ -750,7 +796,7 @@ export default function HomePage() {
                         </div>
                       </div>
                     </Card>
-                  </Link>
+                  </div>
                 </div>
               ))}
             </div>

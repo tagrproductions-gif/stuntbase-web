@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -43,6 +43,14 @@ export function ReactiveFilterInterface() {
   const [filtersCollapsed, setFiltersCollapsed] = useState(false)
   const limit = 12
 
+  // Debounced search - separate state for pending slider values
+  const [debouncedHeightRange, setDebouncedHeightRange] = useState<[number, number]>([48, 84])
+  const [debouncedWeightRange, setDebouncedWeightRange] = useState<[number, number]>([80, 350])
+  
+  // Timeout refs for debouncing
+  const heightTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const weightTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
   // Load filter options from actual database data
   const loadFilterOptions = async () => {
     setFiltersLoading(true)
@@ -55,9 +63,11 @@ export function ReactiveFilterInterface() {
         // Set initial ranges based on actual data
         if (options.heightRange) {
           setHeightRange([options.heightRange.min, options.heightRange.max])
+          setDebouncedHeightRange([options.heightRange.min, options.heightRange.max])
         }
         if (options.weightRange) {
           setWeightRange([options.weightRange.min, options.weightRange.max])
+          setDebouncedWeightRange([options.weightRange.min, options.weightRange.max])
         }
       }
     } catch (error) {
@@ -76,23 +86,23 @@ export function ReactiveFilterInterface() {
       
       // Always add height range (let backend decide if it's meaningful)
       if (filterOptions) {
-        // Only add height filter if it's been changed from the full range
-        if (heightRange[0] > filterOptions.heightRange.min || 
-            heightRange[1] < filterOptions.heightRange.max) {
-          searchFilters.minHeight = heightRange[0]
-          searchFilters.maxHeight = heightRange[1]
+        // Only add height filter if it's been changed from the full range (use debounced values)
+        if (debouncedHeightRange[0] > filterOptions.heightRange.min || 
+            debouncedHeightRange[1] < filterOptions.heightRange.max) {
+          searchFilters.minHeight = debouncedHeightRange[0]
+          searchFilters.maxHeight = debouncedHeightRange[1]
         }
         
-        // Only add weight filter if it's been changed from the full range
-        if (weightRange[0] > filterOptions.weightRange.min || 
-            weightRange[1] < filterOptions.weightRange.max) {
-          searchFilters.minWeight = weightRange[0]
-          searchFilters.maxWeight = weightRange[1]
+        // Only add weight filter if it's been changed from the full range (use debounced values)
+        if (debouncedWeightRange[0] > filterOptions.weightRange.min || 
+            debouncedWeightRange[1] < filterOptions.weightRange.max) {
+          searchFilters.minWeight = debouncedWeightRange[0]
+          searchFilters.maxWeight = debouncedWeightRange[1]
         }
       }
 
       console.log('🎯 Sending search filters:', searchFilters)
-      console.log('📊 Height range:', heightRange, 'Weight range:', weightRange)
+      console.log('📊 Debounced Height range:', debouncedHeightRange, 'Debounced Weight range:', debouncedWeightRange)
 
       const searchQuery: SearchQuery = {
         filters: searchFilters,
@@ -139,15 +149,35 @@ export function ReactiveFilterInterface() {
     setFilters(newFilters)
   }
 
-  // Handle height slider change
-  const handleHeightChange = (range: [number, number]) => {
-    setHeightRange(range)
-  }
+  // Handle height slider change - update UI immediately, search after delay
+  const handleHeightChange = useCallback((range: [number, number]) => {
+    setHeightRange(range) // Update UI immediately for smooth interaction
+    
+    // Clear existing timeout
+    if (heightTimeoutRef.current) {
+      clearTimeout(heightTimeoutRef.current)
+    }
+    
+    // Set new debounced timeout
+    heightTimeoutRef.current = setTimeout(() => {
+      setDebouncedHeightRange(range)
+    }, 500)
+  }, [])
 
-  // Handle weight slider change
-  const handleWeightChange = (range: [number, number]) => {
-    setWeightRange(range)
-  }
+  // Handle weight slider change - update UI immediately, search after delay
+  const handleWeightChange = useCallback((range: [number, number]) => {
+    setWeightRange(range) // Update UI immediately for smooth interaction
+    
+    // Clear existing timeout
+    if (weightTimeoutRef.current) {
+      clearTimeout(weightTimeoutRef.current)
+    }
+    
+    // Set new debounced timeout
+    weightTimeoutRef.current = setTimeout(() => {
+      setDebouncedWeightRange(range)
+    }, 500)
+  }, [])
 
   // Format height for display
   const formatHeight = (inches: number) => {
@@ -166,22 +196,22 @@ export function ReactiveFilterInterface() {
     loadFilterOptions()
   }, [])
 
-  // Search when filters change
+  // Search when filters change (using debounced slider values)
   useEffect(() => {
     if (filterOptions && !filtersLoading) {
       performSearch(1)
     }
-  }, [filters, heightRange, weightRange, filterOptions, filtersLoading])
+  }, [filters, debouncedHeightRange, debouncedWeightRange, filterOptions, filtersLoading])
 
-  // Get active filter count
+  // Get active filter count (using debounced values for accurate count)
   const getActiveFilterCount = () => {
     let count = Object.keys(filters).length
     
     if (filterOptions) {
-      if (heightRange[0] > filterOptions.heightRange.min || 
-          heightRange[1] < filterOptions.heightRange.max) count++
-      if (weightRange[0] > filterOptions.weightRange.min || 
-          weightRange[1] < filterOptions.weightRange.max) count++
+      if (debouncedHeightRange[0] > filterOptions.heightRange.min || 
+          debouncedHeightRange[1] < filterOptions.heightRange.max) count++
+      if (debouncedWeightRange[0] > filterOptions.weightRange.min || 
+          debouncedWeightRange[1] < filterOptions.weightRange.max) count++
     }
     
     return count

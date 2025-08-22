@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { User, ExternalLink } from 'lucide-react'
 
@@ -31,18 +30,6 @@ export function ProfileCard({ profile }: ProfileCardProps) {
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-muted">
             <User className="w-8 h-8 sm:w-12 sm:h-12 text-muted-foreground" />
-          </div>
-        )}
-        
-        {/* Availability Status */}
-        {profile.availability_status && (
-          <div className="absolute top-1 sm:top-2 right-1 sm:right-2">
-            <Badge 
-              variant={profile.availability_status === 'available' ? 'default' : 'secondary'}
-              className="capitalize text-xs"
-            >
-              {profile.availability_status}
-            </Badge>
           </div>
         )}
       </div>

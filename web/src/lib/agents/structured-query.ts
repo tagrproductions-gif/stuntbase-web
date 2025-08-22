@@ -43,10 +43,10 @@ export async function queryWithStructuredFilters(parsedQuery: ParsedQuery): Prom
     }
   }
 
-  // Apply ethnicity filter
-  if (parsedQuery.ethnicity) {
-    query = query.eq('ethnicity', parsedQuery.ethnicity)
-    filtersApplied.push(`ethnicity: ${parsedQuery.ethnicity}`)
+  // Apply ethnicity filter (supports multiple ethnicities)
+  if (parsedQuery.ethnicities && parsedQuery.ethnicities.length > 0) {
+    query = query.in('ethnicity', parsedQuery.ethnicities)
+    filtersApplied.push(`ethnicities: ${parsedQuery.ethnicities.join(', ')}`)
   }
 
   // Apply height filter with flexible matching (±3 inches for better matches)

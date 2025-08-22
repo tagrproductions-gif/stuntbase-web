@@ -191,6 +191,9 @@ function buildSearchContext(parsedQuery: ParsedQuery, queryResult: QueryResult):
     const locationData = findLocationByValue(parsedQuery.location)
     criteria.push(`Location: ${locationData?.label || parsedQuery.location}`)
   }
+  if (parsedQuery.ethnicities && parsedQuery.ethnicities.length > 0) {
+    criteria.push(`Ethnicities: ${parsedQuery.ethnicities.join(', ')}`)
+  }
   if (parsedQuery.height_min && parsedQuery.height_max) {
     const minHeight = `${Math.floor(parsedQuery.height_min / 12)}'${parsedQuery.height_min % 12}"`
     const maxHeight = `${Math.floor(parsedQuery.height_max / 12)}'${parsedQuery.height_max % 12}"`
