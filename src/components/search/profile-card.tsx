@@ -3,8 +3,7 @@ import Image from 'next/image'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { MapPin, Star, Calendar, DollarSign, User, ExternalLink } from 'lucide-react'
-// import { formatCurrency } from '@/lib/utils' // Removed - using direct formatting
+import { User, ExternalLink } from 'lucide-react'
 
 interface ProfileCardProps {
   profile: any // Profile with related data
@@ -12,20 +11,15 @@ interface ProfileCardProps {
 
 export function ProfileCard({ profile }: ProfileCardProps) {
   const primaryPhoto = profile.profile_photos?.find((p: any) => p.is_primary) || profile.profile_photos?.[0]
-  const skills = profile.profile_skills?.slice(0, 3) || [] // Show first 3 skills
-
-  const getProficiencyColor = (level: string) => {
-    switch (level) {
-      case 'beginner': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-      case 'intermediate': return 'bg-blue-100 text-blue-800 border-blue-200'
-      case 'advanced': return 'bg-green-100 text-green-800 border-green-200'
-      case 'expert': return 'bg-purple-100 text-purple-800 border-purple-200'
-      default: return 'bg-muted text-muted-foreground border-border'
-    }
+  
+  // Normalize ethnicity for display
+  const formatEthnicity = (ethnicity: string) => {
+    if (!ethnicity) return ''
+    return ethnicity.toLowerCase().replace(/\b\w/g, l => l.toUpperCase())
   }
 
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-200 touch-manipulation">
+    <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-200 touch-manipulation flex flex-col h-full">
       <div className="aspect-[4/5] relative bg-muted">
         {primaryPhoto ? (
           <Image
@@ -53,91 +47,50 @@ export function ProfileCard({ profile }: ProfileCardProps) {
         )}
       </div>
 
-      <CardContent className="p-2 sm:p-3 lg:p-4">
-        {/* Name and Title */}
-        <div className="mb-1 sm:mb-2">
+      <CardContent className="p-2 sm:p-3 lg:p-4 flex flex-col h-full">
+        {/* Name */}
+        <div className="mb-2">
           <h3 className="font-semibold text-sm sm:text-base lg:text-lg leading-tight line-clamp-1">
             {profile.full_name}
           </h3>
         </div>
 
-        {/* Key Info */}
-        <div className="space-y-1 mb-2 sm:mb-3">
-          {profile.location && (
-            <div className="flex items-center text-xs sm:text-sm text-muted-foreground">
-              <MapPin className="w-3 h-3 sm:w-4 sm:h-4 mr-1 flex-shrink-0" />
-              <span className="line-clamp-1">{profile.location}</span>
-            </div>
-          )}
-          
-          {profile.experience_years && (
-            <div className="flex items-center text-xs sm:text-sm text-muted-foreground">
-              <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-1 flex-shrink-0" />
-              <span>{profile.experience_years}y exp</span>
-            </div>
-          )}
-
-          {(profile.day_rate_min || profile.day_rate_max) && (
-            <div className="flex items-center text-xs sm:text-sm text-muted-foreground">
-              <DollarSign className="w-3 h-3 sm:w-4 sm:h-4 mr-1 flex-shrink-0" />
-              <span className="line-clamp-1">
-                {profile.day_rate_min && profile.day_rate_max 
-                  ? `$${profile.day_rate_min}-$${profile.day_rate_max}/day`
-                  : profile.day_rate_min 
-                    ? `$${profile.day_rate_min}+/day`
-                    : `$${profile.day_rate_max}/day`
-                }
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* Skills */}
-        {skills.length > 0 && (
-          <div className="mb-2 sm:mb-3">
-            <div className="flex flex-wrap gap-1">
-              {skills.slice(0, 2).map((skill: any, index: number) => (
-                <Badge
-                  key={`${skill.skills?.name || skill.skill_id}-${index}`}
-                  variant="outline"
-                  className={`text-xs ${getProficiencyColor(skill.proficiency_level)}`}
-                >
-                  {skill.skills?.name || skill.skill_id}
-                </Badge>
-              ))}
-              {profile.profile_skills?.length > 2 && (
-                <Badge variant="outline" className="text-xs bg-muted text-muted-foreground">
-                  +{profile.profile_skills.length - 2}
-                </Badge>
+        {/* Physical Stats - Fixed layout for uniformity */}
+        <div className="flex-1 space-y-1 mb-4 text-xs sm:text-sm text-muted-foreground">
+          {/* Height and Ethnicity - Same row */}
+          <div className="min-h-[1.25rem] flex justify-between items-center">
+            <span>
+              {(profile.height_feet || profile.height_inches) ? (
+                `H: ${profile.height_feet || 0}'${profile.height_inches || 0}"`
+              ) : (
+                <span className="text-transparent">H: 0'0"</span>
               )}
-            </div>
+            </span>
+            <span>
+              {profile.ethnicity ? (
+                `Ethnicity: ${formatEthnicity(profile.ethnicity)}`
+              ) : (
+                <span className="text-transparent">Ethnicity: Unknown</span>
+              )}
+            </span>
           </div>
-        )}
-
-        {/* Physical Stats */}
-        <div className="grid grid-cols-2 gap-1 mb-2 sm:mb-3 text-xs text-muted-foreground">
-          {(profile.height_feet || profile.height_inches || profile.weight_lbs) && (
-            <div className="space-y-0.5">
-              {(profile.height_feet || profile.height_inches) && (
-                <div>H: {profile.height_feet || 0}'{profile.height_inches || 0}"</div>
-              )}
-              {profile.weight_lbs && (
-                <div>W: {profile.weight_lbs} lbs</div>
-              )}
-            </div>
-          )}
-          {(profile.hair_color || profile.eye_color) && (
-            <div className="space-y-0.5">
-              {profile.hair_color && <div>Hair: {profile.hair_color}</div>}
-              {profile.eye_color && <div>Eyes: {profile.eye_color}</div>}
-            </div>
-          )}
+          
+          {/* Weight - Always show this row */}
+          <div className="min-h-[1.25rem]">
+            {profile.weight_lbs ? (
+              <span>W: {profile.weight_lbs} lbs</span>
+            ) : (
+              <span className="text-transparent">W: 0 lbs</span>
+            )}
+          </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex gap-1 sm:gap-2">
+        {/* Actions - Fixed at bottom */}
+        <div className="flex gap-1 sm:gap-2 mt-auto">
           <Link href={`/profile/${profile.id}`} className="flex-1">
-            <Button variant="outline" className="w-full min-h-[36px] sm:min-h-[40px] lg:min-h-[44px] touch-manipulation text-xs sm:text-sm">
+            <Button 
+              className="w-full min-h-[36px] sm:min-h-[40px] lg:min-h-[44px] touch-manipulation text-xs sm:text-sm bg-primary hover:bg-primary/90 text-primary-foreground"
+            >
               View Profile
             </Button>
           </Link>

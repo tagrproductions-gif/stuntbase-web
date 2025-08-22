@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
-import { Send, User, Bot, Search, Users, Shield } from 'lucide-react'
+import { Send, User, Bot, Search, Users, Shield, MessageCircle, Grid3X3, ChevronLeft, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Navbar } from '@/components/navigation/navbar'
@@ -47,6 +47,11 @@ export default function HomePage() {
   const [isTyping, setIsTyping] = useState(false)
   const [showDeleteSuccess, setShowDeleteSuccess] = useState(false)
   const [carouselProfiles, setCarouselProfiles] = useState<Profile[]>([])
+  const [displayProfiles, setDisplayProfiles] = useState<Profile[]>([])
+
+  const [showPhotos, setShowPhotos] = useState(false)
+  const [photosVisible, setPhotosVisible] = useState(false)
+  const [selectedProfileIndex, setSelectedProfileIndex] = useState<number | null>(null)
   const searchParams = useSearchParams()
   const router = useRouter()
 
@@ -69,7 +74,24 @@ export default function HomePage() {
           const data = await response.json()
           // Shuffle the profiles to get random order
           const shuffled = [...(data.profiles || [])].sort(() => Math.random() - 0.5)
-          setCarouselProfiles(shuffled.slice(0, 6))
+          const profiles = shuffled.slice(0, 6)
+          setCarouselProfiles(profiles)
+          
+          // Generate display profiles for carousel (this only happens once)
+          let displayProfilesArray: Profile[] = []
+          if (profiles.length <= 1) {
+            // If only 1 profile, duplicate it with spacing
+            displayProfilesArray = [...profiles, ...profiles]
+          } else if (profiles.length <= 3) {
+            // For small arrays, interleave to avoid adjacency
+            const shuffledAgain = [...profiles].sort(() => Math.random() - 0.5)
+            displayProfilesArray = [...profiles, ...shuffledAgain]
+          } else {
+            // For larger arrays, add a rotated version to avoid last->first adjacency
+            const rotated = [...profiles.slice(1), profiles[0]]
+            displayProfilesArray = [...profiles, ...rotated]
+          }
+          setDisplayProfiles(displayProfilesArray)
         }
       } catch (error) {
         console.error('Error fetching carousel profiles:', error)
@@ -101,7 +123,15 @@ export default function HomePage() {
     const userMessage = input.trim()
     setInput('')
     setLoading(true)
-    // Don't set hasSearched here - wait for API response
+    
+    // Hide photos when starting new message
+    setPhotosVisible(false)
+    setShowPhotos(false)
+
+    // On mobile, immediately trigger full-screen chat for first message
+    if (!hasSearched && window.innerWidth < 768) {
+      setHasSearched(true)
+    }
 
     // Add user message to chat
     const updatedMessages = [...messages, { role: 'user' as const, content: userMessage }]
@@ -130,8 +160,10 @@ export default function HomePage() {
 
       const data = await response.json()
       
-      // Now show split screen and update profiles immediately
-      setHasSearched(true)
+      // Update search state and profiles (for desktop or if not already set)
+      if (!hasSearched) {
+        setHasSearched(true)
+      }
       setProfiles(data.profiles || [])
       
       // Start typing animation
@@ -139,10 +171,22 @@ export default function HomePage() {
       
       // Add final message after typing is complete
       setMessages(prev => [...prev, { role: 'assistant', content: data.response }])
+      
+      // Show photos after a brief delay if we have results
+      if (data.profiles && data.profiles.length > 0) {
+        setTimeout(() => {
+          setShowPhotos(true)
+          // Small delay for smooth fade-in
+          setTimeout(() => setPhotosVisible(true), 100)
+        }, 500)
+      }
 
     } catch (error) {
       console.error('Chat error:', error)
-      setHasSearched(true)
+      // Ensure chat view is shown even on error (for desktop or if not already set)
+      if (!hasSearched) {
+        setHasSearched(true)
+      }
       const errorMessage = 'Sorry, I encountered an error. Please try again.'
       
       await typeMessage(errorMessage)
@@ -157,6 +201,13 @@ export default function HomePage() {
       e.preventDefault()
       sendMessage()
     }
+  }
+
+
+
+  // Photo interaction handler
+  const handleProfileSelect = (index: number) => {
+    setSelectedProfileIndex(index)
   }
 
   return (
@@ -189,9 +240,18 @@ export default function HomePage() {
         </div>
       )}
 
-      <div className={`flex flex-col xl:flex-row transition-all duration-300 ${hasSearched ? 'h-[calc(100vh-4rem)]' : 'max-w-4xl mx-auto min-h-[60vh]'}`}>
+      <div className={`transition-all duration-700 ease-in-out ${
+        hasSearched 
+          ? 'mobile-chat-container min-h-0 pb-28' 
+          : 'max-w-4xl mx-auto min-h-[60vh]'
+      }`}>
+
         {/* Main Chat Area */}
-        <div className={`transition-all duration-300 flex flex-col ${hasSearched ? 'xl:w-1/2 w-full xl:h-full h-[50vh] xl:border-r border-b xl:border-b-0 border-border' : 'w-full px-4 py-8'}`}>
+        <div className={`transition-all duration-700 ease-in-out flex flex-col ${
+          hasSearched 
+            ? 'w-full h-full'
+            : 'w-full px-4 py-8'
+        }`}>
           {/* Header - only show when not searched */}
           {!hasSearched && (
             <div className="text-center mb-4 sm:mb-6 px-4">
@@ -221,11 +281,15 @@ export default function HomePage() {
           )}
 
           {/* Chat Interface */}
-          <div className={`${hasSearched ? 'flex-1 flex flex-col p-4' : 'px-4 mt-4 sm:mt-8'}`}>
-            <Card className={`${hasSearched ? 'flex-1 flex flex-col' : 'depth-card'}`}>
+          <div className={`transition-all duration-700 ease-in-out ${
+            hasSearched 
+              ? 'flex-1 flex flex-col p-2 sm:p-4 h-full'
+              : 'px-4 mt-4 sm:mt-8'
+          }`}>
+            <Card className={`${hasSearched ? 'flex-1 flex flex-col border-b-2 border-border shadow-lg bg-card' : 'depth-card'}`}>
               <CardContent className={`${hasSearched ? 'p-4 flex-1 flex flex-col' : 'p-4 sm:p-6'}`}>
               {/* Messages */}
-              <div className={`space-y-4 mb-4 sm:mb-6 overflow-y-auto ${hasSearched ? 'flex-1' : 'max-h-96'}`}>
+              <div className={`space-y-4 overflow-y-auto ${hasSearched ? 'flex-1 pb-20' : 'max-h-96 mb-4 sm:mb-6'}`}>
                 {messages.length === 0 && !hasSearched && (
                   <div className="text-center py-8 text-muted-foreground reveal reveal-3">
                     <div className="w-16 h-16 mx-auto mb-4 relative float">
@@ -303,134 +367,124 @@ export default function HomePage() {
                     </div>
                   </div>
                 )}
+
+                {/* Organic Photo Results - Fade in after chat message */}
+                {showPhotos && profiles.length > 0 && (
+                  <div className={`mt-4 transition-all duration-1000 ease-out ${
+                    photosVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+                  }`}>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {profiles.map((profile, index) => (
+                        <div 
+                          key={profile.id}
+                          className="group cursor-pointer"
+                          onClick={() => handleProfileSelect(index)}
+                        >
+                          <Card className="overflow-hidden hover:shadow-lg transition-all duration-200">
+                            <div className="aspect-[3/4] relative bg-muted">
+                              {(() => {
+                                const primaryPhoto = getPrimaryPhoto(profile);
+                                return primaryPhoto ? (
+                                  <Image
+                                    src={primaryPhoto.file_path}
+                                    alt={profile.full_name}
+                                    fill
+                                    className="object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full bg-muted flex items-center justify-center">
+                                    <User className="w-8 h-8 text-muted-foreground" />
+                                  </div>
+                                );
+                              })()}
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                              <div className="absolute bottom-0 left-0 right-0 p-2 text-white">
+                                <h4 className="font-semibold text-xs leading-tight mb-1 profile-overlay-text line-clamp-1">
+                                  {profile.full_name}
+                                </h4>
+                                <div className="flex items-center gap-1 text-xs text-white/80">
+                                  {(profile.height_feet || profile.height_inches) && (
+                                    <span className="bg-black/30 px-1 py-0.5 rounded text-xs">
+                                      {formatHeight(profile.height_feet || 0, profile.height_inches || 0)}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </Card>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Input */}
-              <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 reveal reveal-4">
-                <div className="flex-1 relative">
-                  <Input
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder="I need a 5'8 martial artist in Los Angeles"
-                    disabled={loading}
-                    className="w-full focus-glow text-base py-3 sm:py-4 px-4 sm:px-6 rounded-xl sm:rounded-2xl bg-white/80 backdrop-blur-sm border-2 border-primary/20 hover:border-primary/40 focus:border-primary/60 transition-all duration-500 shadow-lg"
-                  />
+              {/* Input - Only show when NOT searched (homepage) */}
+              {!hasSearched && (
+                <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 reveal reveal-4">
+                  <div className="flex-1 relative">
+                    <Input
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      placeholder="I need a 5'8 martial artist in ATL"
+                      disabled={loading}
+                      className="w-full focus-glow text-base py-3 sm:py-4 px-4 sm:px-6 rounded-xl sm:rounded-2xl bg-white/80 backdrop-blur-sm border-2 border-primary/20 hover:border-primary/40 focus:border-primary/60 transition-all duration-500 shadow-lg"
+                    />
+                  </div>
+                  <Button
+                    onClick={sendMessage}
+                    disabled={loading || !input.trim()}
+                    className="button-enhanced px-6 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl text-white font-medium shadow-xl w-full sm:w-auto min-h-[48px] touch-manipulation"
+                  >
+                    {loading ? (
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    ) : (
+                      <>
+                        <Send className="w-5 h-5 sm:mr-0 mr-2" />
+                        <span className="sm:hidden">Send Message</span>
+                      </>
+                    )}
+                  </Button>
                 </div>
-                <Button
-                  onClick={sendMessage}
-                  disabled={loading || !input.trim()}
-                  className="button-enhanced px-6 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl text-white font-medium shadow-xl w-full sm:w-auto min-h-[48px] touch-manipulation"
-                >
-                  {loading ? (
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  ) : (
-                    <>
-                      <Send className="w-5 h-5 sm:mr-0 mr-2" />
-                      <span className="sm:hidden">Send Message</span>
-                    </>
-                  )}
-                </Button>
-              </div>
+              )}
               </CardContent>
             </Card>
           </div>
         </div>
+      </div>
 
-        {/* Results Panel - only show after search */}
-        {hasSearched && (
-          <div className="xl:w-1/2 w-full xl:h-full h-[50vh] flex flex-col xl:border-l border-border reveal">
-            <div className="p-4 border-b border-border bg-gradient-to-r from-primary/5 to-orange-500/5">
-              <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-                <Search className="w-5 h-5 text-primary" />
-                {profiles.length > 0 ? `Found ${profiles.length} Performers` : 'No Results'}
-            </h2>
+      {/* Sticky Input Bar - Only show after chat starts */}
+      {hasSearched && (
+        <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border p-4 z-50 safe-area-bottom">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center gap-3">
+            <div className="flex-1 relative">
+              <Input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder={hasSearched ? "Ask about more performers..." : "I need a 5'8 martial artist in ATL"}
+                disabled={loading}
+                className="w-full text-base py-3 px-4 pr-12 rounded-full bg-background border-2 border-primary/20 hover:border-primary/40 focus:border-primary/60 transition-all duration-300 shadow-lg focus:shadow-xl"
+              />
             </div>
-            <div className="flex-1 overflow-y-auto p-3 xl:p-4">
-              
-              {profiles.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-                  {profiles.map((profile, index) => (
-                    <Card 
-                      key={profile.id} 
-                      className="overflow-hidden group depth-card reveal"
-                      style={{ 
-                        animationDelay: `${index * 100}ms`,
-                        animationDuration: '600ms',
-                        animationFillMode: 'both'
-                      }}
-                    >
-                      <div className="relative">
-                        {/* Main Photo */}
-                        <div className="aspect-[4/5] relative overflow-hidden bg-muted">
-                          {(() => {
-                            const primaryPhoto = getPrimaryPhoto(profile);
-                            return primaryPhoto ? (
-                              <Image
-                                src={primaryPhoto.file_path}
-                                alt={profile.full_name}
-                                fill
-                                className="object-cover transition-transform duration-300 group-hover:scale-105"
-                              />
-                            ) : (
-                              <div className="w-full h-full bg-muted flex items-center justify-center">
-                                <User className="w-12 h-12 sm:w-16 sm:h-16 text-muted-foreground" />
-                              </div>
-                            );
-                          })()}
-                          
-                          {/* Gradient overlay for text readability */}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                          
-                          {/* Name and Location overlay */}
-                          <div className="absolute bottom-0 left-0 right-0 p-2 text-white">
-                            <h3 className="font-bold text-sm xl:text-base leading-tight mb-1 profile-overlay-text line-clamp-1">{profile.full_name}</h3>
-                            <p className="text-xs text-white/90 mb-1 profile-overlay-text-90 line-clamp-1">{profile.location}</p>
-                            
-                            {/* Physical Stats */}
-                            <div className="flex items-center flex-wrap gap-1 text-xs text-white/80 profile-overlay-text-80">
-                              {(profile.height_feet || profile.height_inches) && (
-                                <span className="bg-black/30 px-1.5 py-0.5 rounded backdrop-blur-sm font-medium text-xs">
-                                  {formatHeight(profile.height_feet || 0, profile.height_inches || 0)}
-                                </span>
-                              )}
-                              {profile.weight_lbs && (
-                                <span className="bg-black/30 px-1.5 py-0.5 rounded backdrop-blur-sm font-medium text-xs">
-                                  {profile.weight_lbs} lbs
-                                </span>
-                              )}
-                              {profile.experience_years && (
-                                <span className="bg-black/30 px-1.5 py-0.5 rounded backdrop-blur-sm font-medium text-xs">
-                                  {profile.experience_years}y exp
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {/* Card Content */}
-                        <CardContent className="p-2">
-                          <Link href={`/profile/${profile.id}`} className="block">
-                            <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-xs min-h-[32px] xl:min-h-[36px] touch-manipulation">
-                              View Profile
-                            </Button>
-                          </Link>
-                        </CardContent>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              ) : messages.length > 1 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Users className="w-12 h-12 mx-auto mb-4" />
-                  <p>No performers match your criteria.</p>
-                  <p className="text-sm mt-2">Try adjusting your search terms.</p>
-                </div>
+            <Button
+              onClick={sendMessage}
+              disabled={loading || !input.trim()}
+              size="icon"
+              className="h-12 w-12 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-300 touch-manipulation shrink-0"
+            >
+              {loading ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              ) : (
+                <Send className="w-5 h-5" />
               )}
-            </div>
+            </Button>
           </div>
-        )}
-          </div>
+        </div>
+        </div>
+      )}
 
       {/* Compact Feature Widgets - only show when not searched */}
       {!hasSearched && (
@@ -464,25 +518,12 @@ export default function HomePage() {
       )}
 
       {/* Profile Carousel - only show when not searched */}
-      {!hasSearched && carouselProfiles.length > 0 && (
+      {!hasSearched && displayProfiles.length > 0 && (
         <div className="max-w-6xl mx-auto px-4 py-6 reveal reveal-3">
           <div className="profile-carousel">
             <div className="carousel-track">
-              {/* Create seamless loop avoiding back-to-back duplicates */}
-              {(() => {
-                if (carouselProfiles.length <= 1) {
-                  // If only 1 profile, duplicate it with spacing
-                  return [...carouselProfiles, ...carouselProfiles];
-                } else if (carouselProfiles.length <= 3) {
-                  // For small arrays, interleave to avoid adjacency
-                  const shuffled = [...carouselProfiles].sort(() => Math.random() - 0.5);
-                  return [...carouselProfiles, ...shuffled];
-                } else {
-                  // For larger arrays, add a rotated version to avoid last->first adjacency
-                  const rotated = [...carouselProfiles.slice(1), carouselProfiles[0]];
-                  return [...carouselProfiles, ...rotated];
-                }
-              })().map((profile, index) => (
+              {/* Display pre-generated profiles to avoid re-rendering on input changes */}
+              {displayProfiles.map((profile, index) => (
                 <div key={`${profile.id}-${index}`} className="carousel-item">
                   <Card className="overflow-hidden border border-primary/10 hover:border-primary/30 transition-all duration-300">
                     <div className="aspect-[3/4] relative bg-muted">
@@ -514,6 +555,112 @@ export default function HomePage() {
           </div>
         </div>
       )}
+
+      {/* Full-Screen Photo Browser */}
+      {selectedProfileIndex !== null && (
+        <div className="fixed inset-0 bg-background z-50 flex flex-col">
+          {/* Photo Browser Header */}
+          <div className="p-4 border-b border-border bg-background/95 backdrop-blur-sm">
+            <div className="flex items-center justify-between">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setSelectedProfileIndex(null)}
+                className="flex items-center gap-2"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Back to Chat
+              </Button>
+              <div className="text-sm text-muted-foreground">
+                {selectedProfileIndex + 1} of {profiles.length}
+              </div>
+            </div>
+          </div>
+
+          {/* Photo Content */}
+          <div className="flex-1 overflow-y-auto p-4">
+            {profiles[selectedProfileIndex] && (
+              <div className="max-w-lg mx-auto">
+                <Card className="overflow-hidden depth-card">
+                  <div className="aspect-[4/5] relative bg-muted">
+                    {(() => {
+                      const profile = profiles[selectedProfileIndex];
+                      const primaryPhoto = getPrimaryPhoto(profile);
+                      return primaryPhoto ? (
+                        <Image
+                          src={primaryPhoto.file_path}
+                          alt={profile.full_name}
+                          fill
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-muted flex items-center justify-center">
+                          <User className="w-16 h-16 text-muted-foreground" />
+                        </div>
+                      );
+                    })()}
+                  </div>
+                  
+                  <CardContent className="p-4">
+                    <h2 className="text-xl font-bold mb-2">{profiles[selectedProfileIndex].full_name}</h2>
+                    <div className="space-y-2 text-sm text-muted-foreground">
+                      <p>{profiles[selectedProfileIndex].location}</p>
+                      <div className="flex gap-2">
+                        {(profiles[selectedProfileIndex].height_feet || profiles[selectedProfileIndex].height_inches) && (
+                          <span className="bg-primary/10 px-2 py-1 rounded">
+                            {formatHeight(profiles[selectedProfileIndex].height_feet || 0, profiles[selectedProfileIndex].height_inches || 0)}
+                          </span>
+                        )}
+                        {profiles[selectedProfileIndex].weight_lbs && (
+                          <span className="bg-primary/10 px-2 py-1 rounded">
+                            {profiles[selectedProfileIndex].weight_lbs} lbs
+                          </span>
+                        )}
+                        {profiles[selectedProfileIndex].experience_years && (
+                          <span className="bg-primary/10 px-2 py-1 rounded">
+                            {profiles[selectedProfileIndex].experience_years}y exp
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="mt-4 flex gap-2">
+                      <Link href={`/profile/${profiles[selectedProfileIndex].id}`} className="flex-1">
+                        <Button className="w-full">View Full Profile</Button>
+                      </Link>
+                      <Button 
+                        variant="outline"
+                        onClick={() => {
+                          if (selectedProfileIndex > 0) {
+                            setSelectedProfileIndex(selectedProfileIndex - 1)
+                          }
+                        }}
+                        disabled={selectedProfileIndex === 0}
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        onClick={() => {
+                          if (selectedProfileIndex < profiles.length - 1) {
+                            setSelectedProfileIndex(selectedProfileIndex + 1)
+                          }
+                        }}
+                        disabled={selectedProfileIndex === profiles.length - 1}
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+
     </div>
   )
 }
+

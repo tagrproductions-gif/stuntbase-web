@@ -14,6 +14,16 @@ export interface NameQuery {
 export function detectNameQuery(message: string): NameQuery {
   const lowerMessage = message.toLowerCase()
   
+  // Words that are clearly NOT names (exclude from name detection)
+  const nonNameWords = new Set([
+    'performers', 'people', 'talent', 'actors', 'stunt', 'fighter', 'fighters', 
+    'driver', 'drivers', 'swimmer', 'swimmers', 'climber', 'climbers',
+    'atlanta', 'los', 'angeles', 'new', 'york', 'chicago', 'miami', 'dallas',
+    'male', 'female', 'man', 'woman', 'men', 'women', 'guy', 'guys', 'girl', 'girls',
+    'available', 'looking', 'need', 'want', 'find', 'search', 'show', 'list',
+    'tall', 'short', 'young', 'old', 'experienced', 'professional'
+  ])
+
   // Patterns that indicate name-based queries (looking up specific people in database)
   const nameQueryPatterns = [
     // Direct name questions
@@ -31,9 +41,23 @@ export function detectNameQuery(message: string): NameQuery {
     /look\s+up\s+([a-z\s]+)/i,
     /search\s+for\s+([a-z\s]+)/i,
     /([a-z\s]+)\s+profile/i,
-    // Just a name by itself (two or more words that look like names)
-    /^([a-z]+\s+[a-z]+(?:\s+[a-z]+)*)$/i,
   ]
+  
+  // Separate pattern for detecting standalone names (more restrictive)
+  const standaloneNamePattern = /^([a-z]+\s+[a-z]+(?:\s+[a-z]+)*)$/i
+  
+  // Check if message looks like a standalone name, but exclude non-name words
+  let potentialStandaloneName = null
+  const standaloneMatch = message.match(standaloneNamePattern)
+  if (standaloneMatch) {
+    const candidate = standaloneMatch[1].trim()
+    const candidateWords = candidate.toLowerCase().split(/\s+/)
+    const hasNonNameWord = candidateWords.some(word => nonNameWords.has(word))
+    
+    if (!hasNonNameWord && candidateWords.length >= 2) {
+      potentialStandaloneName = candidate
+    }
+  }
   
   // Keywords that suggest contact/personal info requests
   const contactKeywords = [
@@ -57,11 +81,22 @@ export function detectNameQuery(message: string): NameQuery {
       if (nameMatch) {
         nameMatch = nameMatch.trim()
         // Basic validation: name should be 2-50 chars and look like a name
-        if (nameMatch.length >= 2 && nameMatch.length <= 50 && /^[a-z\s\-'\.]+$/i.test(nameMatch)) {
+        // Also exclude common non-name words
+        const nameWords = nameMatch.toLowerCase().split(/\s+/)
+        const hasNonNameWord = nameWords.some(word => nonNameWords.has(word))
+        
+        if (nameMatch.length >= 2 && nameMatch.length <= 50 && 
+            /^[a-z\s\-'\.]+$/i.test(nameMatch) && 
+            !hasNonNameWord) {
           extractedNames.push(nameMatch)
         }
       }
     }
+  }
+  
+  // Add standalone name if found
+  if (potentialStandaloneName) {
+    extractedNames.push(potentialStandaloneName)
   }
   
   // Alternative: Look for capitalized words that might be names
@@ -71,7 +106,8 @@ export function detectNameQuery(message: string): NameQuery {
     const commonWords = new Set([
       'what', 'is', 'the', 'phone', 'number', 'email', 'contact', 'info', 'for',
       'tell', 'me', 'about', 'show', 'find', 'get', 'who', 'details', 'profile',
-      'can', 'you', 'please', 'i', 'need', 'want', 'looking', 'search'
+      'can', 'you', 'please', 'i', 'need', 'want', 'looking', 'search',
+      ...Array.from(nonNameWords) // Include our non-name words
     ])
     
     let potentialName = ''

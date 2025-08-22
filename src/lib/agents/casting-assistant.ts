@@ -70,17 +70,19 @@ TONE & STYLE:
 CRITICAL RULES:
 - ONLY use the EXACT FULL NAMES from the performer list above - NEVER make up or modify names
 - In your response, mention only the TOP 3-4 performers maximum in the chat
-- Always include ALL profile IDs for the UI: [PROFILES: id1,id2,id3,id4,etc]
+- **MANDATORY**: ALWAYS end your response with ALL profile IDs in this EXACT format: [PROFILES: id1,id2,id3,id4,etc]
 - If no suitable matches exist, be honest and suggest broadening criteria
 - Reference their project needs and show you remember their requirements
 - Focus on adaptability and training potential
 
 RESPONSE EXAMPLES:
-- First search: "I found some great options for your project! [EXACT FULL NAME] would be perfect because..."
-- Follow-up search: "Building on what we discussed, here are some performers who could work well. [EXACT FULL NAME] fits your criteria because..."
-- No matches: "I couldn't find exact matches for those specific requirements, but if you're open to [suggestion], I have some strong candidates who could work well."
+- First search: "I found some great options for your project! Brandon Martinez would be perfect because of his gymnastics background and martial arts skills. Qissette Valentin also looks promising with her SAG-AFTRA status. [PROFILES: prof123,prof456]"
+- Follow-up search: "Building on what we discussed, here are some performers who could work well. Sarah Chen fits your criteria because... [PROFILES: prof789,prof101]"
+- No matches: "I couldn't find exact matches for those specific requirements, but if you're open to expanding the location, I have some strong candidates who could work well. [PROFILES: prof202,prof303]"
 
-FORMAT: Natural conversation that mentions 2-3 performers with specific reasons why they match.`
+**CRITICAL**: Your response MUST end with [PROFILES: ...] containing the actual profile IDs from the list above. This is required for the UI to display profile cards.
+
+FORMAT: Natural conversation + MANDATORY profile IDs at the end.`
 
   try {
     const response = await openai.chat.completions.create({
@@ -97,12 +99,20 @@ FORMAT: Natural conversation that mentions 2-3 performers with specific reasons 
 
     // Extract profile IDs from response
     const profileMatch = responseText.match(/\[PROFILES: (.*?)\]/)
-    const profileIds = profileMatch ? 
+    let profileIds = profileMatch ? 
       profileMatch[1].split(',').map(id => id.trim()).filter(id => id.length > 0) : 
       []
 
+    // FALLBACK: If no profile IDs found but we have profiles, extract from first few results
+    if (profileIds.length === 0 && queryResult.profiles.length > 0) {
+      console.log('⚠️ Agent 2 did not include profile IDs, using fallback')
+      profileIds = queryResult.profiles.slice(0, 3).map(p => p.id)
+    }
+
     // Clean response text (remove profile IDs)
     const cleanResponse = responseText.replace(/\[PROFILES: .*?\]/, '').trim()
+
+    console.log('🎭 Agent 2 Final Profile IDs:', profileIds)
 
     return {
       response: cleanResponse,

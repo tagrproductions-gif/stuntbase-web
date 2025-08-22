@@ -19,6 +19,7 @@ export interface ParsedQuery {
   union_status: string | null
   availability: string | null
   travel_radius: string | null
+  broad_search: boolean
   confidence: number
 }
 
@@ -28,10 +29,14 @@ export async function parseUserQuery(userMessage: string): Promise<ParsedQuery> 
     `- ${loc.value}: "${loc.label}" (aliases: ${loc.aliases.join(', ')})`
   ).join('\n')
 
-  // Build ethnic appearance mappings for the prompt
-  const ethnicMappings = ETHNIC_APPEARANCE_OPTIONS.map(opt => 
-    `- "${opt.value}" (for: ${opt.label.toLowerCase()})`
-  ).join('\n')
+  // Build ethnic appearance mappings for the prompt with comprehensive aliases
+  const ethnicMappings = [
+    '- "WHITE" (for: white, caucasian, european, anglo)',
+    '- "BLACK" (for: black, african, african american, afro)',
+    '- "ASIAN" (for: asian, chinese, japanese, korean, indian, vietnamese, thai, filipino, south asian, east asian)',
+    '- "HISPANIC" (for: hispanic, latino, latina, mexican, spanish, puerto rican, colombian, venezuelan, central american)',
+    '- "MIDDLE_EASTERN" (for: middle eastern, arab, persian, iranian, turkish, lebanese, syrian, egyptian, moroccan)'
+  ].join('\n')
 
   const prompt = `You are a casting assistant AI. Parse this search query into EXACT database filters.
 
@@ -83,6 +88,11 @@ EXACT TRAVEL RADIUS VALUES (choose one or null):
 - "national" (for: national, anywhere, nationwide, travel)
 - "international" (for: international, worldwide, global, abroad)
 
+BROAD SEARCH DETECTION (set true if query contains these terms):
+- "performers", "people", "talent", "actors", "everyone", "all", "show me", "list", "who", "available"
+- If query is general like "atlanta performers" or "show me fighters" set broad_search: true
+- If query has specific requirements like "5'8 female fighter" set broad_search: false
+
 USER QUERY: "${userMessage}"
 
 PARSING RULES:
@@ -106,6 +116,7 @@ Return ONLY valid JSON (no explanation, no other text):
   "union_status": "SAG-AFTRA|Non-union|Unknown|null",
   "availability": "available|busy|unavailable|null",
   "travel_radius": "local|50|100|200|state|regional|national|international|null",
+  "broad_search": true|false,
   "confidence": 0.0-1.0
 }`
 
@@ -147,6 +158,7 @@ Return ONLY valid JSON (no explanation, no other text):
       union_status: null,
       availability: null,
       travel_radius: null,
+      broad_search: false,
       confidence: 0.0
     }
   }
@@ -230,6 +242,12 @@ export function validateParsedQuery(parsed: ParsedQuery): ParsedQuery {
   // Ensure confidence is between 0 and 1
   if (parsed.confidence < 0) parsed.confidence = 0
   if (parsed.confidence > 1) parsed.confidence = 1
+
+  // Validate broad_search is boolean
+  if (typeof parsed.broad_search !== 'boolean') {
+    console.log(`❌ Invalid broad_search "${parsed.broad_search}", setting to false`)
+    parsed.broad_search = false
+  }
 
   console.log('✅ Validated parsed query:', parsed)
   return parsed

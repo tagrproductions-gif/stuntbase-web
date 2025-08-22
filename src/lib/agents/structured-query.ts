@@ -31,10 +31,16 @@ export async function queryWithStructuredFilters(parsedQuery: ParsedQuery): Prom
     filtersApplied.push(`gender: ${parsedQuery.gender}`)
   }
 
-  // Apply location filter (prioritize structured locations)
+  // Apply location filter (prioritize structured locations, with fallback for broad searches)
   if (parsedQuery.location) {
-    query = query.or(`primary_location_structured.eq.${parsedQuery.location},secondary_location_structured.eq.${parsedQuery.location}`)
-    filtersApplied.push(`location: ${parsedQuery.location}`)
+    if (parsedQuery.broad_search) {
+      // For broad searches, also search unstructured location fields for better coverage
+      query = query.or(`primary_location_structured.eq.${parsedQuery.location},secondary_location_structured.eq.${parsedQuery.location},location.ilike.%${parsedQuery.location.split('-')[0]}%`)
+      filtersApplied.push(`location: ${parsedQuery.location} (broad search)`)
+    } else {
+      query = query.or(`primary_location_structured.eq.${parsedQuery.location},secondary_location_structured.eq.${parsedQuery.location}`)
+      filtersApplied.push(`location: ${parsedQuery.location}`)
+    }
   }
 
   // Apply ethnicity filter
@@ -102,8 +108,9 @@ export async function queryWithStructuredFilters(parsedQuery: ParsedQuery): Prom
     filtersApplied.push(`travel: ${parsedQuery.travel_radius}+`)
   }
 
-  // Limit results to prevent overwhelming the second agent
-  query = query.limit(50)
+  // Limit results to prevent overwhelming the second agent (higher limit for broad searches)
+  const resultLimit = parsedQuery.broad_search ? 100 : 50
+  query = query.limit(resultLimit)
 
   try {
     const { data: profiles, error } = await query

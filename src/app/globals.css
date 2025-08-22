@@ -115,8 +115,8 @@
   /* Profile Carousel Styles */
   .profile-carousel {
     @apply overflow-hidden relative;
-    mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%);
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
   }
   
   .carousel-track {
@@ -569,6 +569,95 @@
     
     .mobile-compact-spacing > * + * {
       margin-top: 0.75rem !important;
+    }
+  }
+
+  /* Mobile tab animations */
+  .mobile-tab-container {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .mobile-tab-content {
+    transition: transform 0.3s ease-in-out;
+  }
+
+  /* Mobile swipe indicators */
+  .swipe-indicator {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    z-index: 1000;
+    transition: opacity 0.3s ease;
+  }
+
+  @media (min-width: 1280px) {
+    .swipe-indicator {
+      display: none;
+    }
+  }
+
+  /* Enhanced mobile profile cards */
+  @media (max-width: 640px) {
+    .mobile-profile-card {
+      min-height: 200px;
+    }
+    
+    .mobile-profile-card .aspect-\[4\/5\] {
+      aspect-ratio: 3/4;
+    }
+  }
+
+  /* Mobile viewport height fixes */
+  @media (max-width: 1279px) {
+    .mobile-full-height {
+      height: 100dvh; /* Dynamic viewport height for mobile browsers */
+      height: 100vh; /* Fallback for older browsers */
+      transition: height 0.7s ease-in-out;
+    }
+    
+    .mobile-chat-container {
+      height: calc(100dvh - 4rem);
+      height: calc(100vh - 4rem);
+      max-height: calc(100dvh - 4rem);
+      max-height: calc(100vh - 4rem);
+      transition: all 0.7s ease-in-out;
+    }
+
+    /* Account for mobile tab navigation */
+    .mobile-tab-content {
+      height: calc(100dvh - 8rem);
+      height: calc(100vh - 8rem);
+      transition: height 0.7s ease-in-out;
+    }
+  }
+
+  /* Better mobile input positioning */
+  @media (max-width: 640px) {
+    .mobile-input-container {
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+  }
+
+  /* Sticky input bar styling */
+  .safe-area-bottom {
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Ensure chat content doesn't get hidden behind sticky input */
+  .chat-with-sticky-input {
+    padding-bottom: 6rem; /* Account for sticky input height */
+  }
+
+  @media (max-width: 640px) {
+    .chat-with-sticky-input {
+      padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
     }
   }
 }
