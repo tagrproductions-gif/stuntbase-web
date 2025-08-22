@@ -196,11 +196,19 @@ export function validateParsedQuery(parsed: ParsedQuery): ParsedQuery {
     parsed.location = null
   }
 
-  // Validate ethnicity
+  // Validate ethnicities
   const validEthnicities = ETHNIC_APPEARANCE_OPTIONS.map(opt => opt.value)
-  if (parsed.ethnicity && !validEthnicities.includes(parsed.ethnicity)) {
-    console.log(`❌ Invalid ethnicity "${parsed.ethnicity}", setting to null`)
-    parsed.ethnicity = null
+  if (parsed.ethnicities && parsed.ethnicities.length > 0) {
+    parsed.ethnicities = parsed.ethnicities.filter(ethnicity => {
+      if (!validEthnicities.includes(ethnicity)) {
+        console.log(`❌ Invalid ethnicity "${ethnicity}", removing from list`)
+        return false
+      }
+      return true
+    })
+    if (parsed.ethnicities.length === 0) {
+      parsed.ethnicities = null
+    }
   }
 
   // Validate availability
