@@ -617,14 +617,17 @@
   /* Mobile viewport height fixes */
   @media (max-width: 1279px) {
     .mobile-full-height {
+      height: calc(var(--vh, 1vh) * 100); /* Use real viewport height */
       height: 100dvh; /* Dynamic viewport height for mobile browsers */
       height: 100vh; /* Fallback for older browsers */
       transition: height 0.7s ease-in-out;
     }
     
     .mobile-chat-container {
+      height: calc(var(--vh, 1vh) * 100 - 4rem);
       height: calc(100dvh - 4rem);
       height: calc(100vh - 4rem);
+      max-height: calc(var(--vh, 1vh) * 100 - 4rem);
       max-height: calc(100dvh - 4rem);
       max-height: calc(100vh - 4rem);
       transition: all 0.7s ease-in-out;
@@ -632,6 +635,7 @@
 
     /* Account for mobile tab navigation */
     .mobile-tab-content {
+      height: calc(var(--vh, 1vh) * 100 - 8rem);
       height: calc(100dvh - 8rem);
       height: calc(100vh - 8rem);
       transition: height 0.7s ease-in-out;
@@ -642,6 +646,30 @@
   @media (max-width: 640px) {
     .mobile-input-container {
       padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+  }
+
+  /* Fix mobile scrolling issues */
+  @media (max-width: 768px) {
+    /* Smooth scrolling for mobile */
+    * {
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* Prevent scroll bounce on body */
+    body {
+      overscroll-behavior: none;
+    }
+
+    /* Fix scroll container behavior */
+    .overflow-y-auto {
+      overscroll-behavior: contain;
+      scroll-behavior: smooth;
+    }
+
+    /* Prevent grid re-layout issues */
+    .grid {
+      contain: layout style;
     }
   }
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -52,6 +52,8 @@ export default function HomePage() {
   const [showPhotos, setShowPhotos] = useState(false)
   const [photosVisible, setPhotosVisible] = useState(false)
   const [selectedProfileIndex, setSelectedProfileIndex] = useState<number | null>(null)
+  const [scrollPosition, setScrollPosition] = useState(0)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
   const searchParams = useSearchParams()
   const router = useRouter()
 
@@ -109,7 +111,7 @@ export default function HomePage() {
     setTypingText('')
     
     for (let i = 0; i <= text.length; i++) {
-      await new Promise(resolve => setTimeout(resolve, 10)) // Faster speed - 10ms per character
+      await new Promise(resolve => setTimeout(resolve, 3)) // Much faster - 3ms per character
       setTypingText(text.slice(0, i))
     }
     
@@ -130,6 +132,10 @@ export default function HomePage() {
 
     // On mobile, immediately trigger full-screen chat for first message
     if (!hasSearched && window.innerWidth < 768) {
+      // Save current scroll position before transition
+      if (messagesContainerRef.current) {
+        setScrollPosition(messagesContainerRef.current.scrollTop)
+      }
       setHasSearched(true)
     }
 
@@ -210,6 +216,46 @@ export default function HomePage() {
     setSelectedProfileIndex(index)
   }
 
+  // Restore scroll position after transition to full-screen
+  useEffect(() => {
+    if (hasSearched && messagesContainerRef.current && scrollPosition > 0) {
+      // Small delay to allow transition to complete
+      setTimeout(() => {
+        if (messagesContainerRef.current) {
+          messagesContainerRef.current.scrollTop = scrollPosition
+        }
+      }, 100)
+    }
+  }, [hasSearched, scrollPosition])
+
+  // Mobile viewport handling
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Prevent zoom on input focus
+      const viewport = document.querySelector('meta[name=viewport]')
+      if (viewport) {
+        viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no')
+      }
+
+      // Handle mobile keyboard resize
+      const handleResize = () => {
+        if (window.innerWidth < 768) {
+          // Update CSS custom property for real viewport height
+          document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`)
+        }
+      }
+
+      handleResize()
+      window.addEventListener('resize', handleResize)
+      window.addEventListener('orientationchange', handleResize)
+
+      return () => {
+        window.removeEventListener('resize', handleResize)
+        window.removeEventListener('orientationchange', handleResize)
+      }
+    }
+  }, [])
+
   return (
     <div className="min-h-screen bg-background text-foreground relative">
       {/* Animated Background */}
@@ -289,7 +335,10 @@ export default function HomePage() {
             <Card className={`${hasSearched ? 'flex-1 flex flex-col border-b-2 border-border shadow-lg bg-card' : 'depth-card'}`}>
               <CardContent className={`${hasSearched ? 'p-4 flex-1 flex flex-col' : 'p-4 sm:p-6'}`}>
               {/* Messages */}
-              <div className={`space-y-4 overflow-y-auto ${hasSearched ? 'flex-1 pb-20' : 'max-h-96 mb-4 sm:mb-6'}`}>
+              <div 
+                ref={messagesContainerRef}
+                className={`space-y-4 overflow-y-auto ${hasSearched ? 'flex-1 pb-20' : 'max-h-96 mb-4 sm:mb-6'}`}
+              >
                 {messages.length === 0 && !hasSearched && (
                   <div className="text-center py-8 text-muted-foreground reveal reveal-3">
                     <div className="w-16 h-16 mx-auto mb-4 relative float">
@@ -318,7 +367,7 @@ export default function HomePage() {
                       className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                         message.role === 'user'
                           ? 'bg-primary text-primary-foreground ml-auto'
-                          : 'bg-card text-card-foreground'
+                          : 'bg-card text-card-foreground shadow-md'
                       }`}
                     >
                       <p className="text-sm whitespace-pre-wrap">{message.content}</p>
