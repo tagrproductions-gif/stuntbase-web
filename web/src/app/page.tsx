@@ -533,10 +533,15 @@ export default function HomePage() {
                                 <h4 className="font-semibold text-xs leading-tight mb-1 profile-overlay-text line-clamp-1">
                                   {profile.full_name}
                                 </h4>
-                                <div className="flex items-center gap-1 text-xs text-white/80">
+                                <div className="text-xs mb-1 profile-overlay-text">
                                   {(profile.height_feet || profile.height_inches) && (
-                                    <span className="bg-black/30 px-1 py-0.5 rounded text-xs">
+                                    <span className="mr-2">
                                       {formatHeight(profile.height_feet || 0, profile.height_inches || 0)}
+                                    </span>
+                                  )}
+                                  {profile.weight_lbs && (
+                                    <span>
+                                      {profile.weight_lbs} lbs
                                     </span>
                                   )}
                                 </div>
