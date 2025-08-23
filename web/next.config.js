@@ -5,6 +5,11 @@ const nextConfig = {
   // Enable standalone output for Docker deployment
   output: 'standalone',
   
+  // Handle external packages that don't work well with Next.js bundling
+  experimental: {
+    serverComponentsExternalPackages: ['pdf-parse'],
+  },
+  
   // Disable ESLint during build to avoid quote escape errors
   eslint: {
     ignoreDuringBuilds: true,

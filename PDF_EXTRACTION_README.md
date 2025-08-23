@@ -125,3 +125,4 @@ To test the PDF extraction:
 ```
 
 The resume analysis now provides **real insights** from actual PDF content to enhance casting recommendations! 🎯
+

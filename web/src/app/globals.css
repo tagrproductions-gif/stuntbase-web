@@ -691,7 +691,7 @@
       max-height: calc(100vh - 4rem);
       transition: all 0.7s ease-in-out;
       overflow: hidden; /* Prevent overflow on mobile */
-      padding-top: 1rem; /* Breathing room below navbar during transition */
+      padding-top: 2rem; /* Increased breathing room below navbar during transition */
       margin-top: 0; /* Ensure no additional top margin */
     }
 
@@ -732,6 +732,16 @@
     /* Prevent grid re-layout issues */
     .grid {
       contain: layout style;
+    }
+
+    /* Mobile chat messages container - ensure proper spacing from top when in full screen mode */
+    .mobile-chat-container .overflow-y-auto {
+      padding-top: 1rem !important; /* Additional top padding for messages in full screen mode */
+    }
+
+    /* Ensure user messages have safe spacing from top during mobile transition */
+    .mobile-chat-container .space-y-4 {
+      padding-top: 0.5rem; /* Extra safety padding for first message */
     }
   }
 

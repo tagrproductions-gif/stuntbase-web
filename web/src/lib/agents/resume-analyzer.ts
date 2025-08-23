@@ -1,6 +1,6 @@
 import OpenAI from 'openai'
 import { createClient } from '@/lib/supabase/server'
-// import pdfParse from 'pdf-parse' // Temporarily disabled
+import pdfParse from 'pdf-parse'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
@@ -196,10 +196,9 @@ async function extractPDFText(resumeUrl: string): Promise<string> {
     const arrayBuffer = await response.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
     
-    // Parse PDF and extract text - TEMPORARILY DISABLED
-    // const pdfData = await pdfParse(buffer)
-    // const extractedText = pdfData.text.trim()
-    const extractedText = "PDF parsing temporarily disabled for debugging"
+    // Parse PDF and extract text
+    const pdfData = await pdfParse(buffer)
+    const extractedText = pdfData.text.trim()
     
     console.log(`📄 Successfully extracted ${extractedText.length} characters from PDF`)
     
@@ -255,7 +254,14 @@ Return ONLY valid JSON:
     })
 
     const responseText = response.choices[0]?.message?.content || ''
-    return JSON.parse(responseText)
+    
+    // Strip markdown code blocks if present
+    const cleanedResponse = responseText
+      .replace(/```json\s*/g, '')
+      .replace(/```\s*/g, '')
+      .trim()
+    
+    return JSON.parse(cleanedResponse)
 
   } catch (error) {
     console.error('📄 AI resume analysis failed:', error)
