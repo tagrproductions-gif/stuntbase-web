@@ -60,11 +60,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       .select(`
         id,
         proficiency_level,
-        skills (
-          id,
-          name,
-          category
-        )
+        skill_id
       `)
       .eq('profile_id', params.id)
     profileSkills = skills || []
@@ -80,11 +76,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
         date_obtained,
         expiry_date,
         certification_number,
-        certifications (
-          id,
-          name,
-          issuing_organization
-        )
+        certification_id
       `)
       .eq('profile_id', params.id)
     profileCertifications = certs || []

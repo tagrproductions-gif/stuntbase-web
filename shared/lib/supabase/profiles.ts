@@ -74,22 +74,14 @@ export async function getProfile(profileId: string) {
       profile_skills (
         id,
         proficiency_level,
-        skills (
-          id,
-          name,
-          category
-        )
+        skill_id
       ),
       profile_certifications (
         id,
         date_obtained,
         expiry_date,
         certification_number,
-        certifications (
-          id,
-          name,
-          issuing_organization
-        )
+        certification_id
       ),
       profile_photos (
         id,

@@ -195,6 +195,14 @@
     color: rgba(255, 255, 255, 0.8) !important;
     -webkit-text-fill-color: rgba(255, 255, 255, 0.8) !important;
   }
+
+  /* Bot avatar - ensure perfect circle regardless of flex constraints */
+  .bot-avatar {
+    @apply w-10 h-10 bg-primary rounded-full flex items-center justify-center flex-shrink-0;
+    min-width: 2.5rem; /* 40px - ensure minimum width */
+    min-height: 2.5rem; /* 40px - ensure minimum height */
+    aspect-ratio: 1 / 1; /* Force perfect square ratio */
+  }
 }
 
 @keyframes float {
@@ -603,6 +611,13 @@
       min-height: 0 !important;
       flex-shrink: 1 !important;
     }
+    
+    /* Smooth transition for chat container on mobile */
+    .mobile-chat-container {
+      transform: translateY(0); /* Ensure no transform offset */
+      position: relative;
+      z-index: 1; /* Below navbar but above background */
+    }
   }
 
   /* Mobile-friendly card spacing */
@@ -676,6 +691,8 @@
       max-height: calc(100vh - 4rem);
       transition: all 0.7s ease-in-out;
       overflow: hidden; /* Prevent overflow on mobile */
+      padding-top: 1rem; /* Breathing room below navbar during transition */
+      margin-top: 0; /* Ensure no additional top margin */
     }
 
     /* Account for mobile tab navigation */

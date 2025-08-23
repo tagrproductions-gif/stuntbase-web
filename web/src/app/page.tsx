@@ -155,6 +155,13 @@ export default function HomePage() {
         setScrollPosition(messagesContainerRef.current.scrollTop)
       }
       setHasSearched(true)
+      
+      // Ensure proper scroll behavior after transition
+      setTimeout(() => {
+        if (messagesContainerRef.current) {
+          messagesContainerRef.current.scrollTop = 0 // Start fresh at top
+        }
+      }, 50) // Small delay to allow DOM update
     }
 
     // Add user message to chat
@@ -359,7 +366,7 @@ export default function HomePage() {
       <div className={`transition-all duration-700 ease-in-out ${
         hasSearched 
           ? 'xl:h-[calc(100vh-4rem)] xl:max-h-[calc(100vh-4rem)] xl:flex xl:pb-0 mobile-chat-container min-h-0 pb-24' 
-          : 'max-w-4xl mx-auto min-h-[60vh]'
+          : 'max-w-4xl mx-auto min-h-[60vh] pt-0'
       }`}>
 
         {/* Main Chat Area */}
@@ -428,7 +435,7 @@ export default function HomePage() {
                     }`}
                   >
                     {message.role === 'assistant' && (
-                      <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
+                      <div className="bot-avatar">
                         <Bot className="w-5 h-5 text-primary-foreground" />
                       </div>
                     )}
@@ -458,7 +465,7 @@ export default function HomePage() {
                 {/* Show typing animation when isTyping */}
                 {isTyping && (
                   <div className="flex items-start space-x-3 justify-start reveal">
-                    <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center gentle-pulse">
+                    <div className="bot-avatar gentle-pulse">
                       <Bot className="w-5 h-5 text-primary-foreground" />
                     </div>
                     <div className="bg-card text-card-foreground px-4 py-3 rounded-lg max-w-2xl shadow-md">
@@ -479,7 +486,7 @@ export default function HomePage() {
                 
                 {loading && !isTyping && (
                   <div className="flex items-start space-x-3">
-                    <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
+                    <div className="bot-avatar">
                       <Bot className="w-5 h-5 text-primary-foreground" />
                     </div>
                     <div className="bg-card px-4 py-2 rounded-lg">

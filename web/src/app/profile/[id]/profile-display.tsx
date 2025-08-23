@@ -268,25 +268,44 @@ export function ProfileDisplay({ profile, isOwner }: ProfileDisplayProps) {
                     const isActive = index === currentPhotoIndex
                     const dimensions = getDynamicDimensions()
                     
-                    // Dynamic spacing and scaling based on viewport
-                    let translateX = offset * dimensions.spacing
-                    let scale = isActive ? dimensions.activeScale : dimensions.inactiveScale
+                    // Make background photos progressively smaller
+                    let scale = dimensions.activeScale
+                    let spacingMultiplier = 1 // Default spacing
+                    
+                    if (Math.abs(offset) === 1) {
+                      scale = dimensions.inactiveScale * 0.95 // Slightly smaller for adjacent photos
+                      spacingMultiplier = 1 // Normal spacing
+                    } else if (Math.abs(offset) === 2) {
+                      scale = dimensions.inactiveScale * 0.8 // Noticeably smaller for side photos
+                      spacingMultiplier = 0.9 // Slightly tighter spacing
+                    } else if (Math.abs(offset) >= 3) {
+                      scale = dimensions.inactiveScale * 0.65 // Much smaller for far photos
+                      spacingMultiplier = 0.75 // Much tighter spacing for smaller photos
+                    } else if (!isActive) {
+                      scale = dimensions.inactiveScale
+                    }
+                    
+                    // Dynamic spacing based on photo size and position
+                    let translateX = offset * dimensions.spacing * spacingMultiplier
+                    
                     let zIndex = isActive ? 10 : Math.max(0, 5 - Math.abs(offset))
                     
-                    // Smoother opacity and blur transitions for better mobile experience
-                    let opacity = 0
+                    // Keep full opacity but add lighting/dimming effects via overlay
+                    let opacity = 1 // All photos at 100% opacity
+                    let overlayOpacity = 0 // Darkness overlay for dimming effect
                     let blur = 0
+                    
                     if (Math.abs(offset) === 0) {
-                      opacity = 1 // Active photo fully visible
+                      overlayOpacity = 0 // Active photo - no dimming
                       blur = 0
                     } else if (Math.abs(offset) === 1) {
-                      opacity = 0.9 // Adjacent photos more visible (reduced fade)
+                      overlayOpacity = 0.15 // Adjacent photos - slight dimming
                       blur = 0.3
                     } else if (Math.abs(offset) === 2) {
-                      opacity = 0.6 // Side photos more visible (reduced fade)
+                      overlayOpacity = 0.35 // Side photos - moderate dimming
                       blur = 0.7
                     } else if (Math.abs(offset) === 3) {
-                      opacity = 0.3 // Far photos more visible (reduced fade)
+                      overlayOpacity = 0.55 // Far photos - heavy dimming
                       blur = 1.2
                     } else {
                       opacity = 0 // Photos too far away are invisible
@@ -306,7 +325,7 @@ export function ProfileDisplay({ profile, isOwner }: ProfileDisplayProps) {
                         onClick={() => setCurrentPhotoIndex(index)}
                       >
                         <div 
-                          className="relative rounded-xl overflow-hidden shadow-2xl bg-card"
+                          className="relative rounded-xl overflow-hidden shadow-md bg-card"
                           style={{
                             width: dimensions.photoWidth,
                             height: dimensions.photoHeight
@@ -319,8 +338,11 @@ export function ProfileDisplay({ profile, isOwner }: ProfileDisplayProps) {
                             className="object-cover"
                             priority={Math.abs(offset) <= 1}
                           />
-                          {!isActive && (
-                            <div className="absolute inset-0 bg-black/20 hover:bg-black/10 transition-colors duration-200" />
+                          {!isActive && overlayOpacity > 0 && (
+                            <div 
+                              className="absolute inset-0 bg-black transition-all duration-700 ease-in-out pointer-events-none" 
+                              style={{ opacity: overlayOpacity }}
+                            />
                           )}
                         </div>
                       </div>
