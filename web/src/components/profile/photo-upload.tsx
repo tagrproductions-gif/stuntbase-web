@@ -88,13 +88,16 @@ export function PhotoUpload({ photos, onPhotosChange, maxPhotos = 5 }: PhotoUplo
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-          Profile Photos
+          Profile Photos *
           <span className="text-sm font-normal text-gray-500">
             {photos.length}/{maxPhotos}
           </span>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          At least 1 photo is required. Upload up to {maxPhotos} photos to showcase your work. The first photo will be your primary photo.
+        </p>
         {/* Upload Area */}
         {photos.length < maxPhotos && (
           <div

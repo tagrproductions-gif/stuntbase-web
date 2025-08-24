@@ -5,11 +5,14 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
-import { Send, User, Bot, Search, Users, Shield, MessageCircle, Grid3X3, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Select } from '@/components/ui/select'
+import { Send, User, Bot, Search, Users, Shield, MessageCircle, Grid3X3, ChevronLeft, ChevronRight, Database } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Navbar } from '@/components/navigation/navbar'
 import { AIResponse } from '@/components/chat/ai-response'
+import { useAuth } from '@/hooks/use-auth'
+import { DatabaseSelectorDialog, DatabaseSelectorTrigger, DatabaseSelectorContent } from '@/components/ui/database-selector-dialog'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -28,6 +31,16 @@ interface Profile {
   profile_photos: any[]
 }
 
+interface ProjectDatabase {
+  id: string
+  project_name: string
+  description: string | null
+  profiles: {
+    full_name: string
+    id: string
+  }
+}
+
 // Helper function to format height from feet and inches
 function formatHeight(feet: number, inches: number): string {
   return inches > 0 ? `${feet}'${inches}"` : `${feet}'`;
@@ -39,6 +52,7 @@ function getPrimaryPhoto(profile: Profile) {
 }
 
 export default function HomePage() {
+  const { user, loading: authLoading } = useAuth()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -54,6 +68,10 @@ export default function HomePage() {
   const [photosVisible, setPhotosVisible] = useState(false)
   const [selectedProfileIndex, setSelectedProfileIndex] = useState<number | null>(null)
   const [scrollPosition, setScrollPosition] = useState(0)
+  const [selectedDatabase, setSelectedDatabase] = useState<string>('global')
+  const [projectDatabases, setProjectDatabases] = useState<ProjectDatabase[]>([])
+  const [userProjects, setUserProjects] = useState<ProjectDatabase[]>([])
+  const [projectsLoading, setProjectsLoading] = useState(false)
   
   // Carousel auto-scroll state
   const [isCarouselPaused, setIsCarouselPaused] = useState(false)
@@ -71,6 +89,14 @@ export default function HomePage() {
       // Auto-hide after 10 seconds
       const timer = setTimeout(() => setShowDeleteSuccess(false), 10000)
       return () => clearTimeout(timer)
+    }
+  }, [searchParams])
+
+  // Check for database parameter and pre-select project
+  useEffect(() => {
+    const databaseParam = searchParams.get('database')
+    if (databaseParam && databaseParam !== 'global') {
+      setSelectedDatabase(databaseParam)
     }
   }, [searchParams])
 
@@ -117,6 +143,59 @@ export default function HomePage() {
       fetchCarouselProfiles()
     }
   }, [hasSearched])
+
+  // Fetch project databases for selector - only when user is authenticated
+  useEffect(() => {
+    const fetchProjectDatabases = async () => {
+      if (!user) {
+        setUserProjects([])
+        setProjectsLoading(false)
+        return
+      }
+      
+      setProjectsLoading(true)
+      try {
+        const response = await fetch('/api/projects')
+        const data = await response.json()
+        if (data.projects) {
+          setProjectDatabases(data.projects)
+          // Only show user's own projects - we need to get current user ID
+          // For now, we'll create a separate API endpoint to get user's own projects
+          const userProjectsResponse = await fetch('/api/projects/my-projects')
+          const userProjectsData = await userProjectsResponse.json()
+          if (userProjectsData.projects) {
+            setUserProjects(userProjectsData.projects)
+            
+            // Security check: if user has selected a project they don't own, reset to global
+            if (selectedDatabase !== 'global') {
+              const userOwnsSelectedProject = userProjectsData.projects.some(
+                (project: ProjectDatabase) => project.id === selectedDatabase
+              )
+              if (!userOwnsSelectedProject) {
+                console.warn('User tried to access project they do not own, resetting to global')
+                setSelectedDatabase('global')
+              }
+            }
+          } else {
+            setUserProjects([])
+            // If user has no projects, reset to global
+            if (selectedDatabase !== 'global') {
+              setSelectedDatabase('global')
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching project databases:', error)
+        setUserProjects([])
+      } finally {
+        setProjectsLoading(false)
+      }
+    }
+
+    if (!authLoading) {
+      fetchProjectDatabases()
+    }
+  }, [user, authLoading])
 
   // Typing animation function
   const typeMessage = async (text: string) => {
@@ -176,7 +255,8 @@ export default function HomePage() {
         },
         body: JSON.stringify({
           message: userMessage,
-          conversationHistory: messages
+          conversationHistory: messages,
+          projectDatabaseId: selectedDatabase === 'global' ? null : selectedDatabase
         }),
       })
 
@@ -363,14 +443,14 @@ export default function HomePage() {
         </div>
       )}
 
-      <div className={`transition-all duration-700 ease-in-out ${
+      <div className={`transition-all duration-600 cubic-bezier(0.16, 1, 0.3, 1) ${
         hasSearched 
           ? 'xl:h-[calc(100vh-4rem)] xl:max-h-[calc(100vh-4rem)] xl:flex xl:pb-0 mobile-chat-container min-h-0 pb-24' 
           : 'max-w-4xl mx-auto min-h-[60vh] pt-0'
       }`}>
 
         {/* Main Chat Area */}
-        <div className={`transition-all duration-700 ease-in-out flex flex-col ${
+        <div className={`transition-all duration-600 cubic-bezier(0.16, 1, 0.3, 1) flex flex-col ${
           hasSearched 
             ? 'xl:w-1/2 xl:h-full xl:border-r xl:border-border w-full h-full'
             : 'w-full px-4 py-8'
@@ -392,22 +472,47 @@ export default function HomePage() {
                   <span className="block sm:inline">Find Stunt Performers</span>
                   <span className="block sm:inline sm:ml-2">with AI</span>
                 </h1>
-                <p className="reveal reveal-1 text-muted-foreground max-w-2xl mx-auto" style={{
+                <div className="reveal reveal-1 text-center max-w-2xl mx-auto" style={{
                   fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
                   lineHeight: '1.6',
                   marginBottom: '0'
                 }}>
-                  Natural language search powered by AI to find the perfect talent for your project
-                </p>
+                  <div className="flex flex-col items-center gap-2">
+                    <Link 
+                      href="/profile/create" 
+                      className="font-medium transition-all duration-300 hover:scale-105"
+                      style={{
+                        background: 'var(--title-gradient)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text'
+                      }}
+                    >
+                      Stunt Performers, Create a Profile
+                    </Link>
+                    <Link 
+                      href="/profile/coordinator/create" 
+                      className="font-medium transition-all duration-300 hover:scale-105"
+                      style={{
+                        background: 'var(--title-gradient)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text'
+                      }}
+                    >
+                      Stunt Coordinators, Create an AI Database
+                    </Link>
+                  </div>
+                </div>
               </div>
             </div>
           )}
 
           {/* Chat Interface */}
-          <div className={`transition-all duration-700 ease-in-out ${
+          <div className={`transition-all duration-600 cubic-bezier(0.16, 1, 0.3, 1) ${
             hasSearched 
               ? 'flex-1 flex flex-col h-full'
-              : 'px-4 mt-4 sm:mt-8'
+              : 'px-4 mt-4 sm:mt-8 lg:mt-6'
           }`}>
             <Card className={`${hasSearched ? 'flex-1 flex flex-col bg-transparent border-0 shadow-none xl:m-4 xl:shadow-md xl:bg-card xl:border xl:h-full xl:max-h-full' : 'depth-card'}`}>
               <CardContent className={`${hasSearched ? 'flex-1 flex flex-col p-2 sm:p-4 xl:p-6 xl:h-full xl:overflow-hidden' : 'p-4 sm:p-6'}`}>
@@ -555,9 +660,35 @@ export default function HomePage() {
                 )}
               </div>
 
+              {/* Database Selector - Only show for users with projects */}
+              {!hasSearched && user && userProjects.length > 0 && !projectsLoading && (
+                <div className="mb-4 reveal reveal-2 flex justify-center">
+                  <div className="w-full sm:w-64 h-10 relative">
+                    {/* Database selector with smooth fade-in */}
+                    <Select 
+                      value={selectedDatabase} 
+                      onChange={(e) => setSelectedDatabase(e.target.value)}
+                      className="w-full bg-white/80 backdrop-blur-sm border-2 border-primary/20 hover:border-primary/40 focus:border-primary/60 transition-all duration-500 ease-out appearance-none bg-no-repeat bg-right pr-8"
+                      style={{
+                        backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                        backgroundPosition: 'right 0.5rem center',
+                        backgroundSize: '12px'
+                      }}
+                    >
+                      <option value="global">Entire Database</option>
+                      {userProjects.map((project) => (
+                        <option key={project.id} value={project.id}>
+                          {project.project_name}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                </div>
+              )}
+
               {/* Input - Only show when NOT searched (homepage) */}
               {!hasSearched && (
-                <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 reveal reveal-4">
+                <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-3 reveal reveal-4">
                   <div className="flex-1 relative">
                     <Input
                       value={input}
@@ -588,7 +719,28 @@ export default function HomePage() {
 
               {/* Desktop Input Bar - Fixed at bottom */}
               {hasSearched && (
-                <div className="hidden xl:flex items-center gap-3 p-4 border-t border-border bg-card flex-shrink-0">
+                <div className="hidden xl:flex items-center gap-3 p-4 border-t border-border bg-card flex-shrink-0 animate-in slide-in-from-bottom-4 duration-500">
+                  {user && userProjects.length > 0 && !projectsLoading && (
+                    <div className="relative">
+                      <Select 
+                        value={selectedDatabase} 
+                        onChange={(e) => setSelectedDatabase(e.target.value)}
+                        className="w-48 text-sm appearance-none bg-no-repeat bg-right pr-8 transition-all duration-300"
+                        style={{
+                          backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                          backgroundPosition: 'right 0.5rem center',
+                          backgroundSize: '12px'
+                        }}
+                      >
+                        <option value="global">Entire Database</option>
+                        {userProjects.map((project) => (
+                          <option key={project.id} value={project.id}>
+                            {project.project_name}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+                  )}
                   <div className="flex-1 relative">
                     <Input
                       value={input}
@@ -711,8 +863,23 @@ export default function HomePage() {
                 onKeyPress={handleKeyPress}
                 placeholder={hasSearched ? "Ask about more performers..." : "I need a 5'8 martial artist in ATL"}
                 disabled={loading}
-                className="w-full text-base py-3 px-4 pr-12 rounded-full bg-background border-2 border-primary/20 hover:border-primary/40 focus:border-primary/60 transition-all duration-300 shadow-lg focus:shadow-xl"
+                className={`w-full text-base py-3 px-4 rounded-full bg-background border-2 border-primary/20 hover:border-primary/40 focus:border-primary/60 transition-all duration-300 shadow-lg focus:shadow-xl ${
+                  user && userProjects.length > 0 && !projectsLoading ? 'pr-16' : 'pr-4'
+                }`}
               />
+              {/* Database Selector Button - Only show for users with projects */}
+              {user && userProjects.length > 0 && !projectsLoading && (
+                <DatabaseSelectorDialog>
+                  <DatabaseSelectorTrigger className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 rounded-full hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors">
+                    <Database className="w-4 h-4" />
+                  </DatabaseSelectorTrigger>
+                  <DatabaseSelectorContent
+                    selectedDatabase={selectedDatabase}
+                    userProjects={userProjects}
+                    onDatabaseChange={setSelectedDatabase}
+                  />
+                </DatabaseSelectorDialog>
+              )}
             </div>
             <Button
               onClick={sendMessage}
@@ -733,7 +900,7 @@ export default function HomePage() {
 
       {/* Compact Feature Widgets - only show when not searched */}
       {!hasSearched && (
-        <div className="max-w-2xl mx-auto px-4 mt-2 sm:-mt-4 pb-4 sm:pb-6 reveal reveal-2">
+        <div className="max-w-2xl mx-auto px-4 mt-2 sm:mt-4 lg:mt-6 pb-4 sm:pb-6 reveal reveal-2">
           <div className="grid grid-cols-3 gap-4">
             <div className="flex flex-col items-center p-3 rounded-lg bg-primary/5 border border-primary/10">
               <div className="w-8 h-8 bg-gradient-to-br from-primary/20 to-orange-500/20 rounded-lg mb-2 flex items-center justify-center">

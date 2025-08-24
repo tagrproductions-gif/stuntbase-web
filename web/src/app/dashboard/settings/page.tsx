@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { Navbar } from '@/components/navigation/navbar'
 import { DeleteProfileSection } from './delete-profile-section'
+import { DeleteCoordinatorSection } from './delete-coordinator-section'
 import { ChangePasswordSection } from './change-password-section'
 
 export default async function SettingsPage() {
@@ -36,6 +37,13 @@ export default async function SettingsPage() {
   // Get user's profile
   const { data: profile } = await supabase
     .from('profiles')
+    .select('*')
+    .eq('user_id', user.id)
+    .single()
+
+  // Get user's coordinator profile
+  const { data: coordinator } = await supabase
+    .from('stunt_coordinators')
     .select('*')
     .eq('user_id', user.id)
     .single()
@@ -125,26 +133,45 @@ export default async function SettingsPage() {
                 Profile Settings
               </CardTitle>
               <CardDescription>
-                Manage your performer profile and visibility
+                {coordinator ? 'Manage your coordinator profile and settings' : 'Manage your performer profile and visibility'}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Eye className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="font-medium">Profile Visibility</p>
-                    <p className="text-sm text-muted-foreground">
-                      {profile?.is_public ? 'Public - visible to casting directors' : 'Private - only visible to you'}
-                    </p>
+              {coordinator ? (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <User className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="font-medium">Coordinator Profile</p>
+                      <p className="text-sm text-muted-foreground">
+                        {coordinator.coordinator_name} - Create and manage project databases
+                      </p>
+                    </div>
                   </div>
+                  <Link href="/projects/create">
+                    <Button variant="outline" size="sm">
+                      Create Project
+                    </Button>
+                  </Link>
                 </div>
-                <Link href={profile ? `/profile/${profile.id}/edit` : '/profile/create'}>
-                  <Button variant="outline" size="sm">
-                    Edit Profile
-                  </Button>
-                </Link>
-              </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Eye className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="font-medium">Profile Visibility</p>
+                      <p className="text-sm text-muted-foreground">
+                        {profile?.is_public ? 'Public - visible to casting directors' : 'Private - only visible to you'}
+                      </p>
+                    </div>
+                  </div>
+                  <Link href={profile ? `/profile/${profile.id}/edit` : '/profile/create'}>
+                    <Button variant="outline" size="sm">
+                      Edit Profile
+                    </Button>
+                  </Link>
+                </div>
+              )}
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -197,7 +224,11 @@ export default async function SettingsPage() {
           </Card>
 
           {/* Danger Zone */}
-          <DeleteProfileSection profile={profile} />
+          {coordinator ? (
+            <DeleteCoordinatorSection coordinator={coordinator} />
+          ) : (
+            <DeleteProfileSection profile={profile} />
+          )}
         </div>
       </div>
     </div>

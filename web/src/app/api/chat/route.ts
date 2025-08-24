@@ -50,15 +50,36 @@ export async function POST(request: NextRequest) {
 
   let conversationHistory: any[] = []
   let message = ''
+  let projectDatabaseId: string | null = null
   
   try {
     const requestData = await request.json()
     message = requestData.message
     conversationHistory = requestData.conversationHistory || []
+    projectDatabaseId = requestData.projectDatabaseId || null
     
     console.log('🚀 ENHANCED AI PIPELINE STARTED')
     console.log('📝 User Message:', message)
     console.log('📚 Conversation Context:', conversationHistory.length, 'previous messages')
+    console.log('🗄️ Project Database ID:', projectDatabaseId)
+
+    // If searching within a project database, validate user ownership
+    if (projectDatabaseId) {
+      // Check if user owns this project database
+      const { data: project, error: projectError } = await supabase
+        .from('project_databases')
+        .select('creator_user_id')
+        .eq('id', projectDatabaseId)
+        .eq('creator_user_id', user.id)
+        .single()
+
+      if (projectError || !project) {
+        return NextResponse.json({ 
+          error: 'Access denied: You do not own this project database',
+          aiResponse: 'I cannot search that project database because you do not have access to it. Please select "Entire Database" or one of your own project databases.'
+        }, { status: 403 })
+      }
+    }
     
     // STAGE -1: Name Detection - Fast preprocessing for name-based queries
     const nameQuery = detectNameQuery(message)
@@ -69,7 +90,7 @@ export async function POST(request: NextRequest) {
       console.log('⚡ FAST NAME LOOKUP MODE: Processing specific person database search...')
       console.log('🔍 Searching database for:', nameQuery.extractedNames)
       
-      const profileMatches = await searchProfilesByName(nameQuery.extractedNames)
+      const profileMatches = await searchProfilesByName(nameQuery.extractedNames, projectDatabaseId)
       const nameResponse = generateNameBasedResponse(message, nameQuery, profileMatches)
       
       console.log('✅ NAME LOOKUP COMPLETE:', {
@@ -104,7 +125,7 @@ export async function POST(request: NextRequest) {
         // This is a name query that was detected as search - use name lookup
         console.log('👤 DETECTED NAME WITHIN SEARCH: Routing to name lookup...')
         
-        const profileMatches = await searchProfilesByName(nameQuery.extractedNames)
+        const profileMatches = await searchProfilesByName(nameQuery.extractedNames, projectDatabaseId)
         const nameResponse = generateNameBasedResponse(message, nameQuery, profileMatches)
         
         return NextResponse.json({
@@ -127,7 +148,7 @@ export async function POST(request: NextRequest) {
       
       // STAGE 2: Query database with structured filters
       console.log('🗄️ DATABASE: Querying with structured filters...')
-      const queryResult = await queryWithStructuredFilters(parsedQuery)
+      const queryResult = await queryWithStructuredFilters(parsedQuery, projectDatabaseId)
       console.log('✅ DATABASE Result:', {
         method: queryResult.method,
         totalFound: queryResult.totalMatched,

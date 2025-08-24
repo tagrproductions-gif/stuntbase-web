@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -8,7 +9,7 @@ import { Select } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { RangeSlider } from '@/components/ui/range-slider'
 import { ProfileCard } from './profile-card'
-import { ChevronLeft, ChevronRight, Loader2, Users, Filter, ChevronDown, ChevronUp } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Loader2, Users, Filter, ChevronDown, ChevronUp, Database } from 'lucide-react'
 import { SearchFilters, SearchQuery } from '@/lib/search/search-utils'
 
 interface SearchResult {
@@ -30,7 +31,18 @@ interface FilterOptions {
   totalProfiles: number
 }
 
+interface ProjectDatabase {
+  id: string
+  project_name: string
+  description: string | null
+  profiles: {
+    full_name: string
+    id: string
+  }
+}
+
 export function ReactiveFilterInterface() {
+  const searchParams = useSearchParams()
   const [filters, setFilters] = useState<SearchFilters>({})
   const [results, setResults] = useState<SearchResult | null>(null)
   const [loading, setLoading] = useState(false)
@@ -40,7 +52,9 @@ export function ReactiveFilterInterface() {
   const [heightRange, setHeightRange] = useState<[number, number]>([48, 84])
   const [weightRange, setWeightRange] = useState<[number, number]>([80, 350])
   const [showAdvanced, setShowAdvanced] = useState(false)
-  const [filtersCollapsed, setFiltersCollapsed] = useState(false)
+  const [filtersCollapsed, setFiltersCollapsed] = useState(true)
+  const [selectedDatabase, setSelectedDatabase] = useState<string>('global')
+  const [userProjects, setUserProjects] = useState<ProjectDatabase[]>([])
   const limit = 12
 
   // Debounced search - separate state for pending slider values
@@ -101,15 +115,15 @@ export function ReactiveFilterInterface() {
         }
       }
 
-      console.log('🎯 Sending search filters:', searchFilters)
-      console.log('📊 Debounced Height range:', debouncedHeightRange, 'Debounced Weight range:', debouncedWeightRange)
+
 
       const searchQuery: SearchQuery = {
         filters: searchFilters,
         page: searchPage,
         limit,
         sortBy: 'updated',
-        sortOrder: 'desc'
+        sortOrder: 'desc',
+        projectDatabaseId: selectedDatabase === 'global' ? null : selectedDatabase
       }
 
       const response = await fetch('/api/search', {
@@ -196,12 +210,57 @@ export function ReactiveFilterInterface() {
     loadFilterOptions()
   }, [])
 
+  // Fetch project databases for selector
+  useEffect(() => {
+    const fetchProjectDatabases = async () => {
+      try {
+        // Only fetch user's own projects
+        const userProjectsResponse = await fetch('/api/projects/my-projects')
+        const userProjectsData = await userProjectsResponse.json()
+        if (userProjectsData.projects) {
+          setUserProjects(userProjectsData.projects)
+          
+          // Security check: if user has selected a project they don't own, reset to global
+          if (selectedDatabase !== 'global') {
+            const userOwnsSelectedProject = userProjectsData.projects.some(
+              (project: ProjectDatabase) => project.id === selectedDatabase
+            )
+
+            if (!userOwnsSelectedProject) {
+              console.warn('User tried to access project they do not own, resetting to global')
+              setSelectedDatabase('global')
+            }
+          }
+        } else {
+          setUserProjects([])
+          // If user has no projects, reset to global
+          if (selectedDatabase !== 'global') {
+            setSelectedDatabase('global')
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching project databases:', error)
+        setUserProjects([])
+      }
+    }
+
+    fetchProjectDatabases()
+  }, [])
+
+  // Check for database parameter and pre-select project
+  useEffect(() => {
+    const databaseParam = searchParams.get('database')
+    if (databaseParam && databaseParam !== 'global') {
+      setSelectedDatabase(databaseParam)
+    }
+  }, [searchParams])
+
   // Search when filters change (using debounced slider values)
   useEffect(() => {
     if (filterOptions && !filtersLoading) {
       performSearch(1)
     }
-  }, [filters, debouncedHeightRange, debouncedWeightRange, filterOptions, filtersLoading])
+  }, [filters, debouncedHeightRange, debouncedWeightRange, filterOptions, filtersLoading, selectedDatabase])
 
   // Get active filter count (using debounced values for accurate count)
   const getActiveFilterCount = () => {
@@ -236,6 +295,36 @@ export function ReactiveFilterInterface() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      {/* Database Selector - Only show when user has projects */}
+      {userProjects.length > 0 && (
+        <Card>
+          <CardContent className="p-4 sm:p-6">
+            <Select 
+              value={selectedDatabase} 
+              onChange={(e) => setSelectedDatabase(e.target.value)}
+              className="w-full sm:w-80 appearance-none bg-no-repeat bg-right pr-8"
+              style={{
+                backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                backgroundPosition: 'right 0.5rem center',
+                backgroundSize: '12px'
+              }}
+            >
+              <option value="global">Entire Database</option>
+              {userProjects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.project_name}
+                </option>
+              ))}
+            </Select>
+            {selectedDatabase !== 'global' && (
+              <p className="text-sm text-muted-foreground mt-2">
+                Searching only profiles submitted to this project
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Filter Section */}
       <Card>
         <div className="flex items-center justify-between p-3 sm:p-6 border-b border-border/50">

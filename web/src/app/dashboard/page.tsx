@@ -4,9 +4,13 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import Link from 'next/link'
 import Image from 'next/image'
-import { User, Settings, Search, PlusCircle } from 'lucide-react'
+import { User, Settings, Search, PlusCircle, Bot } from 'lucide-react'
 import { Navbar } from '@/components/navigation/navbar'
 import { getCurrentUserProfileViewStats } from '@/lib/supabase/profile-views'
+import { ProjectDatabasesWidget } from '@/components/dashboard/ProjectDatabasesWidget'
+import { MySubmissionsWidget } from '@/components/dashboard/MySubmissionsWidget'
+import { CoordinatorPhotoChange } from '@/components/dashboard/coordinator-photo-change'
+import { SignOutButton } from '@/components/dashboard/sign-out-button'
 
 // Helper function to get primary photo
 function getPrimaryPhoto(profile: any) {
@@ -35,6 +39,13 @@ export default async function DashboardPage() {
     .eq('user_id', user.id)
     .single()
 
+  // Check if user is a coordinator
+  const { data: coordinator } = await supabase
+    .from('stunt_coordinators')
+    .select('*')
+    .eq('user_id', user.id)
+    .single()
+
   // Get profile view statistics from your existing profile_analytics view
   const viewStats = profile ? await getCurrentUserProfileViewStats() : null
 
@@ -50,29 +61,53 @@ export default async function DashboardPage() {
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 sm:gap-8">
             {/* Large Profile Photo */}
             <div className="flex-shrink-0">
-              {profile && getPrimaryPhoto(profile) ? (
-                <div className="relative w-32 h-40 sm:w-36 sm:h-48 lg:w-40 lg:h-52">
-                  <Image
-                    src={getPrimaryPhoto(profile).file_path}
-                    alt={profile.full_name || 'Profile'}
-                    fill
-                    className="object-cover rounded-xl shadow-lg"
-                  />
-                </div>
-              ) : (
-                <div className="w-32 h-40 sm:w-36 sm:h-48 lg:w-40 lg:h-52 bg-muted rounded-xl flex items-center justify-center shadow-lg">
-                  <User className="w-16 h-16 sm:w-20 sm:h-20 text-muted-foreground" />
-                </div>
-              )}
+              <div className="space-y-3">
+                {profile && getPrimaryPhoto(profile) ? (
+                  <div className="relative w-32 h-40 sm:w-36 sm:h-48 lg:w-40 lg:h-52">
+                    <Image
+                      src={getPrimaryPhoto(profile).file_path}
+                      alt={profile.full_name || 'Profile'}
+                      fill
+                      className="object-cover rounded-xl shadow-lg"
+                    />
+                  </div>
+                ) : coordinator?.profile_photo_url ? (
+                  <div className="relative w-32 h-40 sm:w-36 sm:h-48 lg:w-40 lg:h-52">
+                    <Image
+                      src={coordinator.profile_photo_url}
+                      alt={coordinator.coordinator_name || 'Coordinator'}
+                      fill
+                      className="object-cover rounded-xl shadow-lg"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-32 h-40 sm:w-36 sm:h-48 lg:w-40 lg:h-52 bg-muted rounded-xl flex items-center justify-center shadow-lg">
+                    <User className="w-16 h-16 sm:w-20 sm:h-20 text-muted-foreground" />
+                  </div>
+                )}
+                
+                {/* Add Change Photo button for coordinators */}
+                {coordinator && (
+                  <div className="w-32 sm:w-36 lg:w-40">
+                    <CoordinatorPhotoChange 
+                      coordinatorId={coordinator.id} 
+                      hasExistingPhoto={!!coordinator.profile_photo_url}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
             
             {/* Header Text */}
             <div className="flex-1 min-w-0 text-center sm:text-left">
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground">
-                {profile?.full_name ? `Welcome back, ${profile.full_name}` : 'Dashboard'}
+                {profile?.full_name ? `Welcome back, ${profile.full_name}` : 
+                 coordinator?.coordinator_name ? `Welcome back, ${coordinator.coordinator_name}` : 'Dashboard'}
               </h1>
               <p className="text-muted-foreground mt-2 text-sm sm:text-base lg:text-lg">
-                {profile?.full_name ? user.email : `Welcome back, ${user.email}`}
+                {profile?.full_name ? user.email : 
+                 coordinator?.coordinator_name ? `${user.email} (Stunt Coordinator)` : 
+                 `Welcome back, ${user.email}`}
               </p>
               {profile?.location && (
                 <p className="text-muted-foreground text-sm sm:text-base mt-2">
@@ -103,24 +138,24 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {!profile ? (
+        {!profile && !coordinator ? (
           <Card className="mb-8">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <PlusCircle className="h-5 w-5" />
-                Complete Your Profile
+                Get Started
               </CardTitle>
               <CardDescription>
-                Create your stunt performer profile to start connecting with casting directors
+                Choose your role to start using our platform
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Link href="/profile/create">
-                <Button>Create Profile</Button>
+              <Link href="/profile/role-selection">
+                <Button>Choose Your Role</Button>
               </Link>
             </CardContent>
           </Card>
-        ) : (
+        ) : profile ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -150,52 +185,135 @@ export default async function DashboardPage() {
               </CardContent>
             </Card>
           </div>
-        )}
+        ) : coordinator ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Coordinator Status</CardTitle>
+                <Settings className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">Active</div>
+                <p className="text-xs text-muted-foreground">
+                  Ready to create project databases
+                </p>
+              </CardContent>
+            </Card>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-              <CardDescription>Manage your stunt performer profile</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {profile ? (
-                <>
-                  <Link href={`/profile/${profile.id}/edit`} className="block">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Account Type</CardTitle>
+                <User className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">Coordinator</div>
+                <p className="text-xs text-muted-foreground">
+                  Private account for project management
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        ) : null}
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          {/* For coordinators: Database widget on left, Quick Actions on right */}
+          {coordinator ? (
+            <>
+              {/* Project Databases Widget - Left side for coordinators */}
+              <ProjectDatabasesWidget className="lg:row-span-1" />
+              
+              {/* Quick Actions Widget - Right side for coordinators */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Quick Actions</CardTitle>
+                  <CardDescription>
+                    Manage your coordinator account
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Link href="/" className="block">
+                    <Button variant="outline" className="w-full justify-start border-2 shadow-lg">
+                      <Bot className="mr-2 h-4 w-4" />
+                      AI Search All Performers
+                    </Button>
+                  </Link>
+
+                  <Link href="/search" className="block">
+                    <Button variant="outline" className="w-full justify-start border-2 shadow-lg">
+                      <Search className="mr-2 h-4 w-4" />
+                      Filter Search All Performers
+                    </Button>
+                  </Link>
+
+                  <Link href="/dashboard/settings" className="block">
                     <Button variant="outline" className="w-full justify-start border-2 shadow-lg">
                       <Settings className="mr-2 h-4 w-4" />
-                      Edit Profile
+                      Account Settings
                     </Button>
                   </Link>
-                  <Link href={`/profile/${profile.id}`} className="block">
-                    <Button variant="outline" className="w-full justify-start border-2 shadow-lg">
-                      <User className="mr-2 h-4 w-4" />
-                      View Public Profile
-                    </Button>
-                  </Link>
-                </>
-              ) : (
-                <Link href="/profile/create" className="block">
-                  <Button className="w-full justify-start border-2 shadow-lg">
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Create Profile
-                  </Button>
-                </Link>
+                  
+                  <SignOutButton />
+                </CardContent>
+              </Card>
+            </>
+          ) : (
+            <>
+              {/* My Submissions Widget - Left side for performers */}
+              {profile && (
+                <MySubmissionsWidget className="lg:row-span-1" />
               )}
-              <Link href="/search" className="block">
-                <Button variant="outline" className="w-full justify-start border-2 shadow-lg">
-                  <Search className="mr-2 h-4 w-4" />
-                  Search Other Performers
-                </Button>
-              </Link>
-              <Link href="/dashboard/settings" className="block">
-                <Button variant="outline" className="w-full justify-start border-2 shadow-lg">
-                  <Settings className="mr-2 h-4 w-4" />
-                  Account Settings
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+              
+              {/* Quick Actions Widget - Right side for performers and users without profiles */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Quick Actions</CardTitle>
+                  <CardDescription>
+                    Manage your stunt performer profile
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {profile ? (
+                    <>
+                      <Link href={`/profile/${profile.id}/edit`} className="block">
+                        <Button variant="outline" className="w-full justify-start border-2 shadow-lg">
+                          <Settings className="mr-2 h-4 w-4" />
+                          Edit Profile
+                        </Button>
+                      </Link>
+                      <Link href={`/profile/${profile.id}`} className="block">
+                        <Button variant="outline" className="w-full justify-start border-2 shadow-lg">
+                          <User className="mr-2 h-4 w-4" />
+                          View Public Profile
+                        </Button>
+                      </Link>
+                    </>
+                  ) : null}
+                  <Link href="/" className="block">
+                    <Button variant="outline" className="w-full justify-start border-2 shadow-lg">
+                      <Bot className="mr-2 h-4 w-4" />
+                      AI Search All Performers
+                    </Button>
+                  </Link>
+
+                  <Link href="/search" className="block">
+                    <Button variant="outline" className="w-full justify-start border-2 shadow-lg">
+                      <Search className="mr-2 h-4 w-4" />
+                      Filter Search All Performers
+                    </Button>
+                  </Link>
+
+                  <Link href="/dashboard/settings" className="block">
+                    <Button variant="outline" className="w-full justify-start border-2 shadow-lg">
+                      <Settings className="mr-2 h-4 w-4" />
+                      Account Settings
+                    </Button>
+                  </Link>
+                  
+                  <SignOutButton />
+                </CardContent>
+              </Card>
+            </>
+          )}
         </div>
       </div>
     </div>

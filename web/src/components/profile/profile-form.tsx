@@ -125,6 +125,32 @@ export function ProfileForm({
       type: resume.type
     } : 'No resume file')
     setSubmitError(null)
+    
+    // Enhanced validation for new profile creation (not for edits)
+    if (!isEdit) {
+      const missingFields: string[] = []
+
+      // Check required fields
+      if (!data.full_name?.trim()) {
+        missingFields.push('Full Name')
+      }
+
+      if (photos.length === 0 && existingPhotos.length === 0) {
+        missingFields.push('At least 1 Photo')
+      }
+
+      if (missingFields.length > 0) {
+        const errorMessage = missingFields.length === 1 
+          ? `${missingFields[0]} is required to create your profile`
+          : `The following fields are required to create your profile: ${missingFields.join(', ')}`
+        setSubmitError(errorMessage)
+        
+        // Scroll to top to show error message
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+        return
+      }
+    }
+    
     try {
       // Normalize text fields
       const normalizedData = {
@@ -164,9 +190,12 @@ export function ProfileForm({
   return (
     <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4 sm:space-y-6">
       {submitError && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-3 flex items-center gap-2 text-red-700">
-          <AlertCircle className="h-4 w-4" />
-          <span className="text-sm">{submitError}</span>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+          <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-red-800 mb-1">Unable to create profile:</p>
+            <p className="text-sm text-red-700">{submitError}</p>
+          </div>
         </div>
       )}
 

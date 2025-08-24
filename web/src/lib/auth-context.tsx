@@ -23,9 +23,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-      setLoading(false)
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser()
+        
+        if (error) {
+          console.warn('Auth error:', error.message)
+          // Clear any invalid session data
+          await supabase.auth.signOut()
+          setUser(null)
+        } else {
+          setUser(user)
+        }
+      } catch (error) {
+        console.error('Failed to get user:', error)
+        // Clear any invalid session data
+        await supabase.auth.signOut()
+        setUser(null)
+      } finally {
+        setLoading(false)
+      }
     }
 
     getUser()

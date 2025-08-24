@@ -68,18 +68,19 @@
     animation: gentle-pulse 2s ease-in-out infinite;
   }
   
-  /* Smooth reveal animation */
+  /* Smooth reveal animation - enhanced for better performance */
   .reveal {
-    animation: reveal 0.8s ease-out forwards;
+    animation: reveal 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     opacity: 0;
-    transform: translateY(30px);
+    transform: translateY(20px);
+    will-change: opacity, transform;
   }
   
-  /* Staggered reveal for multiple items */
-  .reveal-1 { animation-delay: 0.2s; }
-  .reveal-2 { animation-delay: 0.4s; }
-  .reveal-3 { animation-delay: 0.6s; }
-  .reveal-4 { animation-delay: 0.8s; }
+  /* Staggered reveal for multiple items - optimized timing */
+  .reveal-1 { animation-delay: 0.15s; }
+  .reveal-2 { animation-delay: 0.25s; }
+  .reveal-3 { animation-delay: 0.4s; }
+  .reveal-4 { animation-delay: 0.55s; }
   
   /* Enhanced focus states */
   .focus-glow {
@@ -239,9 +240,13 @@
 }
 
 @keyframes reveal {
-  to {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+  100% {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -673,13 +678,13 @@
     }
   }
 
-  /* Mobile viewport height fixes */
+  /* Mobile viewport height fixes with smoother transitions */
   @media (max-width: 1279px) {
     .mobile-full-height {
       height: calc(var(--vh, 1vh) * 100); /* Use real viewport height */
       height: 100dvh; /* Dynamic viewport height for mobile browsers */
       height: 100vh; /* Fallback for older browsers */
-      transition: height 0.7s ease-in-out;
+      transition: height 0.6s cubic-bezier(0.16, 1, 0.3, 1);
     }
     
     .mobile-chat-container {
@@ -689,7 +694,7 @@
       max-height: calc(var(--vh, 1vh) * 100 - 4rem);
       max-height: calc(100dvh - 4rem);
       max-height: calc(100vh - 4rem);
-      transition: all 0.7s ease-in-out;
+      transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
       overflow: hidden; /* Prevent overflow on mobile */
       padding-top: 2rem; /* Increased breathing room below navbar during transition */
       margin-top: 0; /* Ensure no additional top margin */

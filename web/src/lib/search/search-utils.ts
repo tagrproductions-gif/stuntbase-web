@@ -25,6 +25,7 @@ export interface SearchQuery {
   limit?: number
   sortBy?: 'relevance' | 'experience' | 'rate' | 'location' | 'updated' | 'random'
   sortOrder?: 'asc' | 'desc'
+  projectDatabaseId?: string | null
 }
 
 export interface SearchResult {
@@ -109,15 +110,16 @@ export function parseNaturalLanguageQuery(query: string): {
   return { skills, attributes, processedQuery }
 }
 
-export async function searchProfiles(searchQuery: SearchQuery): Promise<SearchResult> {
-  const supabase = createClient()
+export async function searchProfiles(searchQuery: SearchQuery, supabaseClient?: any): Promise<SearchResult> {
+  const supabase = supabaseClient || createClient()
   const {
     query = '',
     filters = {},
     page = 1,
     limit = 12,
     sortBy = 'relevance',
-    sortOrder = 'desc'
+    sortOrder = 'desc',
+    projectDatabaseId = null
   } = searchQuery
 
   try {
@@ -141,6 +143,44 @@ export async function searchProfiles(searchQuery: SearchQuery): Promise<SearchRe
         )
       `, { count: 'exact' })
       .eq('is_public', true)
+
+    // If searching within a specific project database, filter by submissions
+    if (projectDatabaseId) {
+      console.log('🎯 Filtering by project database:', projectDatabaseId)
+      
+      // First, get all profile IDs that have submitted to this project
+      const { data: submissions, error: submissionError } = await supabase
+        .from('project_submissions')
+        .select('profile_id')
+        .eq('project_id', projectDatabaseId)
+      
+      if (submissionError) {
+        console.error('❌ Error fetching submissions:', submissionError)
+        throw new Error(`Failed to fetch project submissions: ${submissionError.message}`)
+      }
+      
+      if (!submissions || submissions.length === 0) {
+        console.log('📭 No submissions found for this project')
+        // Return empty results if no submissions exist
+        return {
+          profiles: [],
+          total: 0,
+          page,
+          limit,
+          totalPages: 0
+        }
+      }
+      
+      // Filter profiles to only those that have submitted
+      const submittedProfileIds = submissions.map(s => s.profile_id)
+      console.log('🎯 Filtering profiles by IDs:', submittedProfileIds)
+      queryBuilder = queryBuilder.in('id', submittedProfileIds)
+      
+      // TODO: Add server-side validation that user owns this project database
+      // This should be done in the API route level, not here
+    } else {
+      console.log('🌍 Searching global profiles (no project filter)')
+    }
 
     // Apply text search if query provided
     if (query) {

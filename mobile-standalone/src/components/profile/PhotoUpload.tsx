@@ -177,8 +177,8 @@ export default function PhotoUpload({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Profile Photos ({photos.length}/{maxPhotos})</Text>
-        <Text style={styles.subtitle}>Add photos to showcase your work and appearance</Text>
+        <Text style={styles.title}>Profile Photos * ({photos.length}/{maxPhotos})</Text>
+        <Text style={styles.subtitle}>At least 1 photo is required. Add photos to showcase your work and appearance</Text>
       </View>
 
       {/* Upload Button */}

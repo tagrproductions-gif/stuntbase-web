@@ -8,7 +8,7 @@ export interface QueryResult {
   filtersApplied: string[]
 }
 
-export async function queryWithStructuredFilters(parsedQuery: ParsedQuery): Promise<QueryResult> {
+export async function queryWithStructuredFilters(parsedQuery: ParsedQuery, projectDatabaseId?: string | null): Promise<QueryResult> {
   const supabase = createClient()
   const filtersApplied: string[] = []
 
@@ -21,9 +21,15 @@ export async function queryWithStructuredFilters(parsedQuery: ParsedQuery): Prom
       *, 
       profile_photos (file_path, file_name, is_primary, sort_order),
       profile_skills (skill_id, proficiency_level, years_experience),
-      profile_certifications (certification_id, date_obtained, expiration_date, certification_number)
+      profile_certifications (certification_id, date_obtained, expiration_date, certification_number)${projectDatabaseId ? ',project_submissions!inner(*)' : ''}
     `)
     .eq('is_public', true)
+
+  // If searching within a specific project database, filter by submissions
+  if (projectDatabaseId) {
+    query = query.eq('project_submissions.project_id', projectDatabaseId)
+    filtersApplied.push('project_database')
+  }
 
   // Apply gender filter
   if (parsedQuery.gender) {

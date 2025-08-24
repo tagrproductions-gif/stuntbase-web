@@ -143,3 +143,79 @@ export async function deleteProfileAction(profileId: string) {
     throw new Error(`Failed to delete profile: ${error instanceof Error ? error.message : 'Unknown error'}`)
   }
 }
+
+export async function deleteCoordinatorAction(coordinatorId: string) {
+  const supabase = createClient()
+
+  // Get the current user
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  
+  if (userError || !user) {
+    throw new Error('Not authenticated')
+  }
+
+  // Get the coordinator to make sure it belongs to the current user
+  const { data: coordinator, error: coordinatorError } = await supabase
+    .from('stunt_coordinators')
+    .select('*')
+    .eq('id', coordinatorId)
+    .eq('user_id', user.id) // Security check
+    .single()
+
+  if (coordinatorError || !coordinator) {
+    throw new Error('Coordinator profile not found or access denied')
+  }
+
+  try {
+    // Delete coordinator photo from storage if exists
+    if (coordinator.profile_photo_url) {
+      // Extract storage path from full URL
+      // URLs look like: https://...supabase.co/storage/v1/object/public/profile-photos/{storage-path}
+      const match = coordinator.profile_photo_url.match(/\/profile-photos\/(.+)$/)
+      if (match) {
+        const storagePath = match[1] // This gives us the actual storage path like "coordinators/userId-timestamp.ext"
+        const { error: storageError } = await supabase.storage
+          .from('profile-photos')
+          .remove([storagePath])
+
+        if (storageError) {
+          console.error('Error deleting coordinator photo from storage:', storageError)
+          // Continue with deletion even if storage cleanup fails
+        }
+      }
+    }
+
+    // Delete any project databases created by this coordinator
+    // CASCADE constraints will handle project_submissions automatically
+    const { error: projectsError } = await supabase
+      .from('project_databases')
+      .delete()
+      .eq('coordinator_id', coordinatorId)
+
+    if (projectsError) {
+      console.error('Error deleting coordinator projects:', projectsError)
+      // Continue with deletion even if project cleanup fails
+    }
+
+    // Finally, delete the coordinator record itself
+    const { error: deleteError } = await supabase
+      .from('stunt_coordinators')
+      .delete()
+      .eq('id', coordinatorId)
+      .eq('user_id', user.id) // Double security check
+
+    if (deleteError) {
+      throw new Error(`Failed to delete coordinator profile: ${deleteError.message}`)
+    }
+
+    // Revalidate relevant paths
+    revalidatePath('/dashboard')
+    revalidatePath('/projects')
+
+    return { success: true }
+
+  } catch (error) {
+    console.error('Coordinator deletion error:', error)
+    throw new Error(`Failed to delete coordinator profile: ${error instanceof Error ? error.message : 'Unknown error'}`)
+  }
+}

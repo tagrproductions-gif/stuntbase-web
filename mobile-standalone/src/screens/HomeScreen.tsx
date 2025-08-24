@@ -35,31 +35,31 @@ export default function HomeScreen() {
   const cursorAnim = useRef(new Animated.Value(1)).current
 
   useEffect(() => {
-    // Animate in the initial UI
+    // Animate in the initial UI with improved easing
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 1000,
+        duration: 800,
         useNativeDriver: true,
       }),
       Animated.timing(slideAnim, {
         toValue: 0,
-        duration: 800,
+        duration: 700,
         useNativeDriver: true,
       }),
     ]).start()
 
-    // Blinking cursor animation
+    // Blinking cursor animation with smoother timing
     const blinkCursor = () => {
       Animated.sequence([
         Animated.timing(cursorAnim, {
           toValue: 0,
-          duration: 500,
+          duration: 600,
           useNativeDriver: true,
         }),
         Animated.timing(cursorAnim, {
           toValue: 1,
-          duration: 500,
+          duration: 600,
           useNativeDriver: true,
         }),
       ]).start(() => blinkCursor())
@@ -113,10 +113,10 @@ export default function HomeScreen() {
       if (response.profiles?.length > 0) {
         setProfiles(response.profiles)
         
-        // Animate profile cards in
+        // Animate profile cards in with smoother timing
         setTimeout(() => {
           scrollViewRef.current?.scrollToEnd({ animated: true })
-        }, 500)
+        }, 400)
       }
     } catch (error) {
       console.error('Chat error:', error)

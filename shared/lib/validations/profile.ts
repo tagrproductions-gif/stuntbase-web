@@ -161,7 +161,7 @@ export const profileFormSchema = z.object({
   profile: profileSchema,
   skills: z.array(skillSchema).max(20, 'Maximum 20 skills allowed'),
   certifications: z.array(certificationSchema).max(10, 'Maximum 10 certifications allowed'),
-  photos: z.array(photoSchema).max(5, 'Maximum 5 photos allowed')
+  photos: z.array(photoSchema).min(1, 'At least 1 photo is required').max(5, 'Maximum 5 photos allowed')
 })
 
 export type ProfileFormData = z.infer<typeof profileFormSchema>

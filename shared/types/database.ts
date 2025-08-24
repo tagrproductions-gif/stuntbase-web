@@ -281,6 +281,90 @@ export interface Database {
           created_at?: string
         }
       }
+      project_databases: {
+        Row: {
+          id: string
+          creator_user_id: string
+          project_name: string
+          description: string | null
+          coordinator_name: string | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          creator_user_id: string
+          project_name: string
+          description?: string | null
+          coordinator_name?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          creator_user_id?: string
+          project_name?: string
+          description?: string | null
+          coordinator_name?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      project_submissions: {
+        Row: {
+          id: string
+          project_id: string
+          profile_id: string
+          submitted_at: string
+          status: string
+          notes: string | null
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          profile_id: string
+          submitted_at?: string
+          status?: string
+          notes?: string | null
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          profile_id?: string
+          submitted_at?: string
+          status?: string
+          notes?: string | null
+        }
+      }
+      stunt_coordinators: {
+        Row: {
+          id: string
+          user_id: string
+          coordinator_name: string
+          profile_photo_url: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          coordinator_name: string
+          profile_photo_url?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          coordinator_name?: string
+          profile_photo_url?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
       search_logs: {
         Row: {
           id: string

@@ -1,13 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { searchProfiles, logSearch, SearchQuery } from '@/lib/search/search-utils'
+import { createClient } from '@/lib/supabase/server'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const searchQuery: SearchQuery = body
+    
+    console.log('🔍 Search API received:', {
+      projectDatabaseId: searchQuery.projectDatabaseId,
+      hasFilters: !!searchQuery.filters,
+      page: searchQuery.page
+    })
 
-    // Perform the search
-    const results = await searchProfiles(searchQuery)
+    // Create supabase client for authentication
+    const supabase = createClient()
+    let authenticatedSupabase = null
+
+    // If searching within a project database, validate user ownership
+    if (searchQuery.projectDatabaseId) {
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      
+      if (authError || !user) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+
+      // Check if user owns this project database
+      const { data: project, error: projectError } = await supabase
+        .from('project_databases')
+        .select('creator_user_id')
+        .eq('id', searchQuery.projectDatabaseId)
+        .eq('creator_user_id', user.id)
+        .single()
+
+      if (projectError || !project) {
+        return NextResponse.json({ error: 'Access denied: You do not own this project database' }, { status: 403 })
+      }
+      
+      // Use authenticated client for project database searches
+      authenticatedSupabase = supabase
+    }
+
+    // Perform the search with authenticated client if needed
+    const results = await searchProfiles(searchQuery, authenticatedSupabase)
 
     // Log the search (non-blocking)
     if (searchQuery.query || Object.keys(searchQuery.filters || {}).length > 0) {

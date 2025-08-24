@@ -195,7 +195,7 @@ export function detectNameQuery(message: string): NameQuery {
  * Fast database search for profiles by name
  * Much more efficient than going through the full AI pipeline
  */
-export async function searchProfilesByName(names: string[]): Promise<any[]> {
+export async function searchProfilesByName(names: string[], projectDatabaseId?: string | null): Promise<any[]> {
   const supabase = createClient()
   
   try {
@@ -205,9 +205,14 @@ export async function searchProfilesByName(names: string[]): Promise<any[]> {
         *,
         profile_photos (file_path, file_name, is_primary, sort_order),
         profile_skills (skill_id, proficiency_level, years_experience),
-        profile_certifications (certification_id, date_obtained, expiration_date, certification_number)
+        profile_certifications (certification_id, date_obtained, expiration_date, certification_number)${projectDatabaseId ? ',project_submissions!inner(*)' : ''}
       `)
       .eq('is_public', true)
+
+    // If searching within a specific project database, filter by submissions
+    if (projectDatabaseId) {
+      query = query.eq('project_submissions.project_id', projectDatabaseId)
+    }
     
     // Build name search conditions with better precision
     const nameConditions: string[] = []

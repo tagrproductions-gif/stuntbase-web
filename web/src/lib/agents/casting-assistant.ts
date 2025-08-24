@@ -26,6 +26,23 @@ export async function generateCastingResponse(
   resumeAnalyses: any[] = []
 ): Promise<CastingResponse> {
   
+  // Check if no profiles were found - return early with appropriate message
+  console.log('🔍 CASTING ASSISTANT DEBUG: queryResult.profiles.length =', queryResult.profiles.length)
+  console.log('🔍 CASTING ASSISTANT DEBUG: queryResult.totalMatched =', queryResult.totalMatched)
+  if (queryResult.profiles.length === 0) {
+    console.log('⚠️ No profiles found in database query, returning empty result message')
+    return {
+      response: "I searched through the database but didn't find any performers matching those criteria. You might want to try broadening your search parameters - perhaps expanding the location, adjusting physical requirements, or looking for related skills that could work for your project.",
+      profileIds: [],
+      searchStats: {
+        method: queryResult.method,
+        totalFound: 0,
+        filtersApplied: queryResult.filtersApplied,
+        confidence: parsedQuery.confidence
+      }
+    }
+  }
+  
   // Build context about the search
   const searchContext = buildSearchContext(parsedQuery, queryResult)
   
@@ -80,24 +97,24 @@ CRITICAL RULES:
 RESPONSE FORMAT EXAMPLE:
 I found some excellent options for your project! Here are my top recommendations:
 
-🎬 Sarah Chen
-📍 Los Angeles, CA • 5'7", 130 lbs, Asian ethnicity
-⭐ Key Skills: Martial Arts, Wire Work, Gymnastics
-🎥 Experience: Worked on "John Wick 4" as stunt double, 8 years experience
-✨ Why Perfect: Her martial arts background and wire work experience make her ideal for action sequences
+🎬 [Performer Name]
+📍 [Location] • [Height], [Weight], [Ethnicity]
+⭐ Key Skills: [Skills from their profile]
+🎥 Experience: [Their actual experience and credits]
+✨ Why Perfect: [Explain why they match the search criteria]
 
-🎬 Marcus Torres
-📍 Atlanta, GA • 5'9", 165 lbs, Hispanic ethnicity
-⭐ Key Skills: Precision Driving, Firearms, Motorcycle
-🎥 Experience: Fast & Furious franchise stunt driver, 12 years experience
-✨ Why Perfect: Extensive driving experience and firearms training match your requirements
+🎬 [Second Performer Name]
+📍 [Location] • [Physical specs]
+⭐ Key Skills: [Their actual skills]
+🎥 Experience: [Their experience]
+✨ Why Perfect: [Why they're a good match]
 
-🎬 Brandon Martinez
-📍 New York, NY • 6'0", 180 lbs, SAG-AFTRA member
-⭐ Key Skills: Gymnastics, Combat, Parkour
-✨ Why Perfect: His gymnastics foundation provides excellent body control and adaptability
+🎬 [Third Performer Name]
+📍 [Location] • [Physical specs]
+⭐ Key Skills: [Their skills]
+✨ Why Perfect: [Why they fit the project]
 
-[PROFILES: prof123,prof456,prof789]
+[PROFILES: actual_id_1,actual_id_2,actual_id_3]
 
 CLEAN FORMATTING RULES:
 - Start with a brief intro line
@@ -162,7 +179,7 @@ CLEAN FORMATTING RULES:
 
     return {
       response: fallbackResponse,
-      profileIds: queryResult.profiles.slice(0, 3).map(p => p.id), // Return first 3 as fallback
+      profileIds: queryResult.profiles.length > 0 ? queryResult.profiles.slice(0, 3).map(p => p.id) : [], // Only return profile IDs if profiles exist
       searchStats: {
         method: queryResult.method,
         totalFound: queryResult.totalMatched,

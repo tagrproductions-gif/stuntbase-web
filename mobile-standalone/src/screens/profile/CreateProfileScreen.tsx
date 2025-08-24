@@ -152,6 +152,11 @@ export default function CreateProfileScreen({ navigation }: CreateProfileScreenP
       newErrors.primary_location_structured = 'Primary location is required'
     }
     
+    // Photo validation - at least 1 photo required
+    if (photos.length === 0) {
+      newErrors.photos = 'At least 1 photo is required'
+    }
+    
     // Email validation
     if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Please enter a valid email address'
