@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+
+# Allow search engines to crawl public profiles and projects
+Allow: /profile/
+Allow: /projects/
+Allow: /search
+
+# Disallow private areas
+Disallow: /dashboard
+Disallow: /auth/
+Disallow: /api/
+
+# Sitemap location
+Sitemap: https://stuntpitch.com/sitemap.xml

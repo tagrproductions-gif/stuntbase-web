@@ -9,6 +9,19 @@ export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://stuntpitch.com'),
   title: 'StuntPitch - Stunt Performer Directory',
   description: 'Connect stunt performers with casting directors and coordinators. Find the perfect talent for your project with AI-powered search.',
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: '32x32', type: 'image/x-icon' },
+      { url: '/icon.png', sizes: '1024x1024', type: 'image/png' },
+      { url: '/logo.png', sizes: '1024x1024', type: 'image/png' }
+    ],
+    shortcut: '/favicon.ico',
+    apple: {
+      url: '/logo.png',
+      sizes: '1024x1024',
+      type: 'image/png',
+    },
+  },
   openGraph: {
     title: 'StuntPitch - Stunt Performer Directory',
     description: 'Connect stunt performers with casting directors and coordinators. Find the perfect talent for your project with AI-powered search.',
@@ -17,8 +30,8 @@ export const metadata: Metadata = {
     images: [
       {
         url: 'https://stuntpitch.com/logo.png',
-        width: 512,
-        height: 512,
+        width: 1024,
+        height: 1024,
         alt: 'StuntPitch Logo',
       },
     ],

@@ -1,3 +1,28 @@
+import { Metadata } from 'next'
+import ProjectsClient from './projects-client'
+
+export const metadata: Metadata = {
+  title: 'Project Databases - StuntPitch',
+  description: 'Submit your stunt performer profile to project-specific casting databases. Get discovered by stunt coordinators and casting directors for upcoming film and TV productions.',
+  openGraph: {
+    title: 'Project Databases - StuntPitch',
+    description: 'Submit your stunt performer profile to project-specific casting databases. Get discovered by stunt coordinators and casting directors for upcoming film and TV productions.',
+    url: 'https://stuntpitch.com/projects',
+    siteName: 'StuntPitch',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Project Databases - StuntPitch',
+    description: 'Submit your stunt performer profile to project-specific casting databases. Get discovered by stunt coordinators and casting directors for upcoming film and TV productions.',
+  },
+}
+
+export default function ProjectsPage() {
+  return <ProjectsClient />
+}
+
+// Client component
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -23,7 +48,7 @@ interface ProjectDatabase {
   }
 }
 
-export default function ProjectsPage() {
+function ProjectsClient() {
   const { user, loading: authLoading } = useAuth()
   const [projects, setProjects] = useState<ProjectDatabase[]>([])
   const [loading, setLoading] = useState(true)

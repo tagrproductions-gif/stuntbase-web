@@ -1,5 +1,23 @@
+import { Metadata } from 'next'
 import { Navbar } from '@/components/navigation/navbar'
 import { ReactiveFilterInterface } from '@/components/search/reactive-filter-interface'
+
+export const metadata: Metadata = {
+  title: 'Search Stunt Performers - StuntPitch',
+  description: 'Search and filter through hundreds of professional stunt performers. Find the perfect talent for your project using advanced filters and AI-powered search.',
+  openGraph: {
+    title: 'Search Stunt Performers - StuntPitch',
+    description: 'Search and filter through hundreds of professional stunt performers. Find the perfect talent for your project using advanced filters and AI-powered search.',
+    url: 'https://stuntpitch.com/search',
+    siteName: 'StuntPitch',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Search Stunt Performers - StuntPitch',
+    description: 'Search and filter through hundreds of professional stunt performers. Find the perfect talent for your project using advanced filters and AI-powered search.',
+  },
+}
 
 export default function SearchPage() {
   return (
