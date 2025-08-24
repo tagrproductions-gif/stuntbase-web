@@ -77,14 +77,21 @@ export async function POST(request: NextRequest) {
       profileCount: castingResponse.profileIds.length
     })
     
-    // Get matched profiles for frontend
-    const matchedProfiles = queryResult.profiles.filter(p => 
-      castingResponse.profileIds.includes(p.id)
+    // Get ALL matching profiles for frontend, with AI-selected ones first in AI's preferred order
+    const aiSelectedProfiles = castingResponse.profileIds.map(id => 
+      queryResult.profiles.find(p => p.id === id)
+    ).filter(Boolean) // Remove any undefined entries
+    
+    const remainingProfiles = queryResult.profiles.filter(p => 
+      !castingResponse.profileIds.includes(p.id)
     )
+    // Show AI-selected profiles first (in AI's order), then remaining matches
+    const matchedProfiles = [...aiSelectedProfiles, ...remainingProfiles]
     
     console.log('🎉 PIPELINE COMPLETE:', {
       totalProcessed: queryResult.totalMatched,
-      finalRecommendations: matchedProfiles.length,
+      aiRecommendations: castingResponse.profileIds.length,
+      totalProfilesShown: matchedProfiles.length,
       confidence: parsedQuery.confidence
     })
 

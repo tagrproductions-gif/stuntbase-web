@@ -102,7 +102,7 @@ I found some excellent options for your project! Here are my top recommendations
 CLEAN FORMATTING RULES:
 - Start with a brief intro line
 - Use 🎬 Name (no markdown symbols) for each performer heading
-- Use emoji prefixes: 📍 Location • 🎬 Physical, ⭐ Skills, 🎥 Experience, ✨ Why Perfect
+- Use emoji prefixes: 📍 Location • Physical specs, ⭐ Key Skills, 🎥 Experience, ✨ Why Perfect
 - Keep explanations concise (1-2 lines per section)
 - Include resume insights when available (e.g., specific credits)
 - Limit to TOP 3-4 performers to avoid overwhelming

@@ -252,8 +252,14 @@ export function validateParsedQuery(parsed: ParsedQuery): ParsedQuery {
     parsed.weight_max = null
   }
 
-  // Validate skills
+  // Validate skills - handle null/undefined skills
   const validSkills = ['fight', 'drive', 'swim', 'climb', 'horse', 'gun', 'acrobat', 'wire', 'fire', 'bike', 'dance', 'ski']
+  
+  // Ensure skills is always an array
+  if (!Array.isArray(parsed.skills)) {
+    parsed.skills = []
+  }
+  
   const originalSkills = [...parsed.skills]
   parsed.skills = parsed.skills.filter(skill => validSkills.includes(skill))
   
