@@ -51,8 +51,8 @@ export default function CreateCoordinatorPage() {
       return
     }
 
-    // Add photo to form data
-    formData.append('profile_photo', photo.file)
+    // Add photo to form data (photo is guaranteed to exist due to validation above)
+    formData.append('profile_photo', photo!.file)
 
     try {
       const result = await createCoordinatorAction(formData)
