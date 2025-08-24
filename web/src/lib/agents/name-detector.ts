@@ -257,9 +257,15 @@ export async function searchProfilesByName(names: string[], projectDatabaseId?: 
     
     console.log(`👤 Found ${profiles?.length || 0} profiles matching names: ${names.join(', ')}`)
     console.log(`👤 Search conditions used:`, nameConditions)
-    console.log(`👤 Profiles found:`, profiles?.map(p => ({ id: p.id, name: p.full_name, isPublic: p.is_public })))
     
-    return profiles || []
+    // Ensure profiles is an array before processing
+    if (Array.isArray(profiles)) {
+      console.log(`👤 Profiles found:`, profiles.map((p: any) => ({ id: p.id, name: p.full_name, isPublic: p.is_public })))
+      return profiles
+    }
+    
+    console.log(`👤 Profiles found: No valid profiles returned`)
+    return []
     
   } catch (error) {
     console.error('Name search failed:', error)

@@ -145,7 +145,7 @@ export async function queryWithStructuredFilters(parsedQuery: ParsedQuery, proje
         'dance': ['choreography', 'ballet', 'hip hop', 'contemporary', 'ballroom', 'pole dancing', 'movement']
       }
       
-      filteredProfiles = filteredProfiles.filter(profile => {
+      filteredProfiles = filteredProfiles.filter((profile: any) => {
         const profileSkills = profile.profile_skills?.map((ps: any) => ps.skill_id.toLowerCase()) || []
         
         // Check if profile has any of the requested skills OR related skills

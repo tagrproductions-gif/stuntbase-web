@@ -172,7 +172,7 @@ export async function searchProfiles(searchQuery: SearchQuery, supabaseClient?: 
       }
       
       // Filter profiles to only those that have submitted
-      const submittedProfileIds = submissions.map(s => s.profile_id)
+      const submittedProfileIds = submissions.map((s: any) => s.profile_id)
       console.log('🎯 Filtering profiles by IDs:', submittedProfileIds)
       queryBuilder = queryBuilder.in('id', submittedProfileIds)
       
@@ -297,7 +297,7 @@ export async function searchProfiles(searchQuery: SearchQuery, supabaseClient?: 
     console.log(`Search returned ${data?.length || 0} profiles out of ${count || 0} total`)
 
     // Sort profile photos for consistent primary photo display
-    data?.forEach(profile => {
+    data?.forEach((profile: any) => {
       if (profile.profile_photos) {
         profile.profile_photos.sort((a: any, b: any) => {
           // Primary photos first
