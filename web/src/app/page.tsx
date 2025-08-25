@@ -31,17 +31,11 @@ interface Profile {
   profile_photos: any[]
 }
 
-// 🎠 MEMORY OPTIMIZED: Minimal carousel profile interface
+// 🎠 ULTRA-MINIMAL: Only what's needed for clickable photo carousel
 interface CarouselProfile {
   id: string
   full_name: string
-  location: string
-  height_feet: number
-  height_inches: number
-  profile_photos: Array<{
-    file_path: string
-    is_primary: boolean
-  }>
+  photo_url: string
 }
 
 interface ProjectDatabase {
@@ -59,9 +53,14 @@ function formatHeight(feet: number, inches: number): string {
   return inches > 0 ? `${feet}'${inches}"` : `${feet}'`;
 }
 
-// Helper function to get primary photo (same logic as profile page)
-function getPrimaryPhoto(profile: Profile | CarouselProfile) {
-  return profile.profile_photos?.find((p: any) => p.is_primary) || profile.profile_photos?.[0];
+// 🎠 SIMPLIFIED: Direct photo URL access for carousel
+function getProfilePhoto(profile: CarouselProfile) {
+  return profile.photo_url;
+}
+
+// Helper function to get primary photo
+function getPrimaryPhoto(profile: any) {
+  return profile?.profile_photos?.find((p: any) => p.is_primary) || profile?.profile_photos?.[0]
 }
 
 export default function HomePage() {
@@ -119,36 +118,23 @@ export default function HomePage() {
 
 
 
-  // Fetch random profiles for carousel - MEMORY OPTIMIZED: minimal data only
+  // 🎠 ULTRA-LIGHTWEIGHT: Just fetch photos for clickable carousel
   useEffect(() => {
     const fetchCarouselProfiles = async () => {
       try {
-        // 🚀 MEMORY FIX: Use new minimal carousel endpoint instead of full search
         const response = await fetch('/api/carousel')
         if (response.ok) {
           const data = await response.json()
-          // Data is already minimal and randomized from server
           const profiles = data.profiles || []
-          setCarouselProfiles(profiles)
           
-          // Generate display profiles for carousel (this only happens once)
-          let displayProfilesArray: CarouselProfile[] = []
-          if (profiles.length <= 1) {
-            // If only 1 profile, duplicate it with spacing
-            displayProfilesArray = [...profiles, ...profiles]
-          } else if (profiles.length <= 3) {
-            // For small arrays, interleave to avoid adjacency
-            const shuffledAgain = [...profiles].sort(() => Math.random() - 0.5)
-            displayProfilesArray = [...profiles, ...shuffledAgain]
-          } else {
-            // For larger arrays, add a rotated version to avoid last->first adjacency
-            const rotated = [...profiles.slice(1), profiles[0]]
-            displayProfilesArray = [...profiles, ...rotated]
-          }
-          setDisplayProfiles(displayProfilesArray)
+          // 🚀 MEMORY SAFE: Use the data exactly as-is, no complex processing
+          setCarouselProfiles(profiles)
+          setDisplayProfiles(profiles) // Simple direct assignment
+        } else {
+          console.warn('Carousel API unavailable - hiding carousel')
         }
       } catch (error) {
-        console.error('Error fetching carousel profiles:', error)
+        console.error('Carousel fetch failed:', error)
       }
     }
     
@@ -957,7 +943,7 @@ export default function HomePage() {
                 animationPlayState: isCarouselPaused ? 'paused' : 'running'
               }}
             >
-              {/* Display pre-generated profiles to avoid re-rendering on input changes */}
+              {/* 🎠 ULTRA-SIMPLE: Just clickable photo cards */}
               {displayProfiles.map((profile, index) => (
                 <div key={`${profile.id}-${index}`} className="carousel-item">
                   <div 
@@ -966,25 +952,15 @@ export default function HomePage() {
                   >
                     <Card className="overflow-hidden border border-primary/10 hover:border-primary/30 transition-all duration-300 hover:scale-105">
                       <div className="aspect-[3/4] relative bg-muted">
-                        {(() => {
-                          const primaryPhoto = getPrimaryPhoto(profile);
-                          return primaryPhoto ? (
-                            <Image
-                              src={primaryPhoto.file_path}
-                              alt={profile.full_name}
-                              fill
-                              className="object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-muted flex items-center justify-center">
-                              <User className="w-12 h-12 text-muted-foreground" />
-                            </div>
-                          );
-                        })()}
+                        <Image
+                          src={profile.photo_url}
+                          alt={profile.full_name}
+                          fill
+                          className="object-cover"
+                        />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                         <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
-                          <h3 className="font-semibold text-sm leading-tight mb-1 profile-overlay-text">{profile.full_name}</h3>
-                          <p className="text-xs text-white/80 profile-overlay-text-80">{profile.location}</p>
+                          <h3 className="font-semibold text-sm leading-tight profile-overlay-text">{profile.full_name}</h3>
                         </div>
                       </div>
                     </Card>

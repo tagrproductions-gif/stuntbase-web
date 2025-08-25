@@ -168,10 +168,10 @@ export async function deleteCoordinatorAction(coordinatorId: string) {
 
   try {
     // Delete coordinator photo from storage if exists
-    if (coordinator.photo_url) {
+    if (coordinator.profile_photo_url) {
       // Extract storage path from full URL
       // URLs look like: https://...supabase.co/storage/v1/object/public/profile-photos/{storage-path}
-      const match = coordinator.photo_url.match(/\/profile-photos\/(.+)$/)
+      const match = coordinator.profile_photo_url.match(/\/profile-photos\/(.+)$/)
       if (match) {
         const storagePath = match[1] // This gives us the actual storage path like "coordinators/userId-timestamp.ext"
         const { error: storageError } = await supabase.storage

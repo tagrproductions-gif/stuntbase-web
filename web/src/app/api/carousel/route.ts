@@ -2,77 +2,63 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
 /**
- * 🚀 MEMORY OPTIMIZED: Ultra-minimal carousel endpoint
- * Returns only essential data for homepage carousel to prevent memory leaks
- * No bio, skills, certifications, or other heavy data
+ * 🎠 ULTRA-LIGHTWEIGHT CAROUSEL: Only photo + clickable link to profile
+ * MEMORY LEAK PREVENTION: Absolute minimal data - just ID, name, and ONE photo
  */
 export async function GET() {
   try {
     const supabase = createClient()
     
-    console.log('🎠 CAROUSEL API: Fetching minimal profile data for homepage')
+    console.log('🎠 CAROUSEL: Fetching ONLY photos for clickable profile links')
     
-    // 🚀 MEMORY CRITICAL: Select only essential fields for carousel
+    // 🎯 SUPER MINIMAL: Only get profiles that have photos (for carousel display)
     const { data: profiles, error } = await supabase
       .from('profiles')
       .select(`
         id, 
-        full_name, 
-        height_feet, 
-        height_inches,
-        primary_location_structured,
-        location,
+        full_name,
         profile_photos!inner (file_path, is_primary)
       `)
       .eq('is_public', true)
-      .limit(12) // Get more to randomize from, but still limited
+      .limit(8) // Even smaller limit to prevent memory issues
     
     if (error) {
-      console.error('Carousel fetch error:', error)
-      return NextResponse.json({ profiles: [] })
+      console.error('🎠 CAROUSEL ERROR:', error)
+      return NextResponse.json({ 
+        profiles: [],
+        error: 'No profiles with photos available'
+      })
     }
     
-    // 🎠 MEMORY OPTIMIZATION: Process only primary photos and essential data
-    const minimalProfiles = profiles?.map(profile => {
-      // Find primary photo or first photo
-      const primaryPhoto = profile.profile_photos?.find((p: any) => p.is_primary) || 
-                          profile.profile_photos?.[0]
+    // 🚀 ABSOLUTE MINIMAL: Only ID, name, and ONE photo per profile
+    const ultraMinimalProfiles = profiles?.map(profile => {
+      // Get ONLY the primary photo (or first photo)
+      const photo = profile.profile_photos?.find((p: any) => p.is_primary) || 
+                   profile.profile_photos?.[0]
       
       return {
-        id: profile.id,
-        full_name: profile.full_name,
-        location: profile.primary_location_structured || profile.location || 'Location not specified',
-        height_feet: profile.height_feet,
-        height_inches: profile.height_inches,
-        // Only include ONE photo to minimize memory
-        profile_photos: primaryPhoto ? [{ 
-          file_path: primaryPhoto.file_path, 
-          is_primary: true 
-        }] : [],
-        // Add minimal required fields that homepage expects
-        bio: '', // Empty to save memory
-        experience_years: 0, // Not displayed in carousel
-        weight_lbs: 0 // Not displayed in carousel
+        id: profile.id, // For the clickable link
+        full_name: profile.full_name, // For display overlay
+        photo_url: photo?.file_path || null // Only ONE photo URL
       }
-    }) || []
+    }).filter(p => p.photo_url) || [] // Only include profiles with photos
     
-    // 🎲 RANDOMIZE: Shuffle on server side
-    const shuffled = minimalProfiles.sort(() => Math.random() - 0.5)
-    const finalProfiles = shuffled.slice(0, 6) // Only return 6 for carousel
+    // 🎲 Randomize and limit to prevent memory bloat
+    const shuffled = ultraMinimalProfiles.sort(() => Math.random() - 0.5)
+    const finalProfiles = shuffled.slice(0, 6) // Maximum 6 photos
     
-    console.log(`🎠 CAROUSEL API: Returning ${finalProfiles.length} minimal profiles`)
-    console.log(`🎠 Memory optimization: Only primary photos, no bio/skills/certifications`)
+    console.log(`🎠 CAROUSEL: Returning ${finalProfiles.length} photo-only profiles`)
     
     return NextResponse.json({ 
       profiles: finalProfiles,
-      message: 'Minimal carousel data loaded successfully'
+      message: 'Photo carousel loaded successfully'
     })
     
   } catch (error) {
-    console.error('Carousel API error:', error)
+    console.error('🎠 CAROUSEL EXCEPTION:', error)
     return NextResponse.json({ 
       profiles: [],
-      error: 'Failed to load carousel data'
+      error: 'Carousel unavailable'
     })
   }
 }

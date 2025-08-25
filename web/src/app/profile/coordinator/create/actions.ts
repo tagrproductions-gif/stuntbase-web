@@ -103,7 +103,7 @@ export async function createCoordinatorAction(formData: FormData) {
       .insert({
         user_id: user.id,
         coordinator_name: coordinator_name.trim(),
-        photo_url: photoUrl
+        profile_photo_url: photoUrl
       })
       .select()
       .single()

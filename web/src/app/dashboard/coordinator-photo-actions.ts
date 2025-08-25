@@ -101,15 +101,15 @@ export async function updateCoordinatorPhotoAction(formData: FormData) {
     }
 
     // Delete old photo from storage if it exists
-    if (coordinator.photo_url) {
-      await deleteCoordinatorPhotoFromStorage(supabase, coordinator.photo_url)
+    if (coordinator.profile_photo_url) {
+      await deleteCoordinatorPhotoFromStorage(supabase, coordinator.profile_photo_url)
     }
 
     // Update coordinator record with new photo URL
     const { error: updateError } = await supabase
       .from('stunt_coordinators')
       .update({
-        photo_url: newPhotoUrl,
+        profile_photo_url: newPhotoUrl,
         updated_at: new Date().toISOString()
       })
       .eq('user_id', user.id)

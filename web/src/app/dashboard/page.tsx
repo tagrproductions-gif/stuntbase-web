@@ -45,7 +45,7 @@ export default async function DashboardPage() {
   // Check if user is a coordinator (🚀 MEMORY FIX: specific fields only)
   const { data: coordinator } = await supabase
     .from('stunt_coordinators')
-    .select('id, user_id, coordinator_name, company_name, phone, email, bio, photo_url, created_at')
+    .select('id, user_id, coordinator_name, profile_photo_url, created_at')
     .eq('user_id', user.id)
     .single()
 
@@ -74,10 +74,10 @@ export default async function DashboardPage() {
                       className="object-cover rounded-xl shadow-lg"
                     />
                   </div>
-                ) : coordinator?.photo_url ? (
+                ) : coordinator?.profile_photo_url ? (
                   <div className="relative w-32 h-40 sm:w-36 sm:h-48 lg:w-40 lg:h-52">
                     <Image
-                      src={coordinator.photo_url}
+                      src={coordinator.profile_photo_url}
                       alt={coordinator.coordinator_name || 'Coordinator'}
                       fill
                       className="object-cover rounded-xl shadow-lg"
@@ -94,7 +94,7 @@ export default async function DashboardPage() {
                   <div className="w-32 sm:w-36 lg:w-40">
                     <CoordinatorPhotoChange 
                       coordinatorId={coordinator.id} 
-                      hasExistingPhoto={!!coordinator.photo_url}
+                      hasExistingPhoto={!!coordinator.profile_photo_url}
                     />
                   </div>
                 )}
