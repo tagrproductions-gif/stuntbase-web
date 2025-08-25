@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "generate-embeddings": "npx tsx src/scripts/generate-embeddings.ts",
-    "generate-embeddings:profile": "npx tsx src/scripts/generate-embeddings.ts --profile="
+    "generate-embeddings:profile": "npx tsx src/scripts/generate-embeddings.ts --profile=",
+    "migrate-resumes": "npx tsx src/scripts/migrate-existing-resumes.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.60.0",

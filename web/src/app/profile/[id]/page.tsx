@@ -15,10 +15,15 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
   console.log('Fetching profile:', params.id)
 
-  // First, try to get just the basic profile data
+  // First, try to get just the basic profile data (🚀 MEMORY FIX: exclude massive resume_text)
   const { data: profile, error } = await supabase
     .from('profiles')
-    .select('*')
+    .select(`
+      id, full_name, bio, gender, ethnicity, height_feet, height_inches, weight_lbs,
+      location, primary_location_structured, secondary_location_structured, 
+      union_status, availability_status, travel_radius, reel_url, website, 
+      resume_url, phone, email, created_at, updated_at, is_public, user_id
+    `)
     .eq('id', params.id)
     .single()
 
@@ -87,7 +92,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   try {
     const { data: photos } = await supabase
       .from('profile_photos')
-      .select('*')
+      .select('id, file_path, file_name, is_primary, sort_order, created_at')
       .eq('profile_id', params.id)
       .order('sort_order')
     profilePhotos = photos || []

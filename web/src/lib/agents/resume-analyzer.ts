@@ -1,10 +1,14 @@
 import OpenAI from 'openai'
 import { createClient } from '@/lib/supabase/server'
-import pdfParse from 'pdf-parse'
+// 🚨 MEMORY FIX: Conditional import to prevent loading pdf-parse when disabled
+// import pdfParse from 'pdf-parse' // MOVED TO CONDITIONAL IMPORT
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-})
+// 🚀 MEMORY FIX: Create OpenAI client per request, not globally
+function getOpenAI() {
+  return new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY!,
+  })
+}
 
 export interface ResumeAnalysis {
   profileId: string
@@ -31,16 +35,12 @@ export interface ResumeConfig {
   timeoutMs: number
 }
 
-// Configuration - easily changeable for tier migration
+// 🚀 MEMORY SAFE: Resume analysis for TOP 2 profiles only using stored text
 const RESUME_CONFIG: ResumeConfig = {
-  // 🔧 CURRENT: Analyze all users for testing
   enableForAllUsers: true,
-  
-  // 🔮 FUTURE: Only analyze Pro+ users (change enableForAllUsers to false)
-  enabledTiers: ['pro', 'premium'],
-  
-  maxResumesToAnalyze: 2, // Only top 2 profiles
-  timeoutMs: 8000 // 8 second timeout per resume
+  enabledTiers: ['pro', 'premium'], 
+  maxResumesToAnalyze: 2, // ONLY TOP 2 profiles for memory safety
+  timeoutMs: 10000
 }
 
 /**
@@ -50,13 +50,19 @@ export async function analyzeEligibleResumes(
   topProfiles: any[],
   searchContext: string
 ): Promise<ResumeAnalysis[]> {
+  // Check if disabled
+  if (!RESUME_CONFIG.enableForAllUsers || RESUME_CONFIG.maxResumesToAnalyze === 0) {
+    console.log('📄 Resume Analyzer: DISABLED for memory safety')
+    return []
+  }
+
   console.log('📄 Resume Analyzer: Starting analysis for', topProfiles.length, 'profiles')
   console.log('📄 Config:', RESUME_CONFIG)
 
-  // 🚀 OPTIMIZATION: Only analyze profiles that actually have resumes
+  // 🚀 MEMORY SAFE: Only analyze TOP profiles with resumes
   const profilesWithResumes = topProfiles
     .filter(profile => profile.resume_url) // Only profiles with resumes
-    .slice(0, RESUME_CONFIG.maxResumesToAnalyze) // Top 2 only
+    .slice(0, RESUME_CONFIG.maxResumesToAnalyze) // Limit to top 2
 
   console.log(`📄 Found ${profilesWithResumes.length} profiles with resumes out of ${topProfiles.length} total`)
 
@@ -65,8 +71,11 @@ export async function analyzeEligibleResumes(
     return []
   }
 
+  // 🚀 MEMORY SAFE: Fetch stored resume text for these profiles only
+  const profilesWithResumeText = await enrichProfilesWithResumeText(profilesWithResumes)
+
   // 🚀 PARALLEL PROCESSING: Analyze all resumes simultaneously
-  const resumePromises = profilesWithResumes.map(profile => 
+  const resumePromises = profilesWithResumeText.map(profile => 
     analyzeProfileResume(profile, searchContext)
   )
   
@@ -77,6 +86,39 @@ export async function analyzeEligibleResumes(
   console.log(`📄 Resume Analyzer: Completed ${analyzedCount}/${analyses.length} analyses in parallel`)
 
   return analyses
+}
+
+/**
+ * 🚀 MEMORY SAFE: Fetch resume_text for specific profiles only
+ */
+async function enrichProfilesWithResumeText(profiles: any[]): Promise<any[]> {
+  const supabase = createClient()
+  
+  console.log(`📄 Fetching stored resume text for ${profiles.length} specific profiles...`)
+  
+  const profileIds = profiles.map(p => p.id)
+  
+  const { data: resumeData, error } = await supabase
+    .from('profiles')
+    .select('id, resume_text')
+    .in('id', profileIds)
+  
+  if (error) {
+    console.error('📄 Failed to fetch resume text:', error)
+    return profiles // Return without resume text
+  }
+  
+  // Merge resume text into profiles
+  const enrichedProfiles = profiles.map(profile => {
+    const resumeInfo = resumeData?.find(r => r.id === profile.id)
+    return {
+      ...profile,
+      resume_text: resumeInfo?.resume_text || null
+    }
+  })
+  
+  console.log(`📄 Successfully enriched ${enrichedProfiles.length} profiles with resume text`)
+  return enrichedProfiles
 }
 
 /**
@@ -119,17 +161,23 @@ async function analyzeProfileResume(
   try {
     console.log(`📄 Starting resume analysis for ${profile.id}`)
     
-    // Extract text from PDF
-    const resumeText = await extractPDFText(profile.resume_url)
+    // 🚀 MEMORY FIX: Use cached text instead of downloading PDF
+    let resumeText = profile.resume_text
+    
+    // Fallback: If no cached text, extract from PDF (for existing profiles)
+    if (!resumeText && profile.resume_url) {
+      console.log('📄 No cached text found, extracting from PDF (legacy profile)')
+      resumeText = await extractPDFText(profile.resume_url)
+    }
     
     if (!resumeText || resumeText.length < 50) {
       return {
         ...baseAnalysis,
-        reason: 'Resume text extraction failed or too short'
+        reason: 'Resume text not available or too short'
       }
     }
 
-    // AI Analysis
+    // AI Analysis using cached or extracted text
     const aiAnalysis = await analyzeResumeWithAI(resumeText, searchContext)
     
     console.log(`📄 Successfully analyzed resume for ${profile.id}`)
@@ -173,45 +221,12 @@ function isEligibleForResumeAnalysis(profile: any): boolean {
 }
 
 /**
- * Extract text from PDF resume
- * ✅ IMPLEMENTED - Fetches and parses PDF content
+ * 🚀 MEMORY SAFE: No PDF downloading - should use stored text instead
+ * This function should never be called now that we store text on upload
  */
 async function extractPDFText(resumeUrl: string): Promise<string> {
-  try {
-    console.log('📄 Extracting PDF text from:', resumeUrl)
-    
-    // Fetch the PDF file
-    const response = await fetch(resumeUrl, {
-      method: 'GET',
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; ResumeAnalyzer/1.0)',
-      },
-    })
-    
-    if (!response.ok) {
-      throw new Error(`Failed to fetch PDF: ${response.status} ${response.statusText}`)
-    }
-    
-    // Get PDF content as buffer
-    const arrayBuffer = await response.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
-    
-    // Parse PDF and extract text
-    const pdfData = await pdfParse(buffer)
-    const extractedText = pdfData.text.trim()
-    
-    console.log(`📄 Successfully extracted ${extractedText.length} characters from PDF`)
-    
-    if (extractedText.length < 50) {
-      throw new Error('PDF text too short - may be corrupted or image-based')
-    }
-    
-    return extractedText
-    
-  } catch (error) {
-    console.error('📄 PDF extraction failed:', error)
-    throw new Error(`PDF extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
-  }
+  // 🚀 NEVER DOWNLOAD PDFs - all text should be pre-stored in database
+  throw new Error('PDF downloading disabled - resume text should be pre-stored in database')
 }
 
 /**
@@ -243,6 +258,7 @@ Return ONLY valid JSON:
 }`
 
   try {
+    const openai = getOpenAI()
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       max_tokens: 400,

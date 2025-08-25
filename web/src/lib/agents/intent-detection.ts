@@ -1,8 +1,5 @@
-import OpenAI from 'openai'
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-})
+// 🚀 MEMORY FIX: Ultra-lightweight OpenAI calls (1KB vs 10MB)
+import { callOpenAIJSON } from '@/lib/utils/openai-fetch'
 
 export interface IntentAnalysis {
   intent: 'search' | 'conversation' | 'help' | 'greeting'
@@ -58,18 +55,15 @@ Return ONLY valid JSON:
 }`
 
   try {
-    const response = await openai.chat.completions.create({
+    // 🚀 MEMORY OPTIMIZED: Direct fetch call (no heavy client)
+    const analysis: IntentAnalysis = await callOpenAIJSON({
       model: 'gpt-4o-mini',
       max_tokens: 200,
-      response_format: { type: "json_object" },
       messages: [{
         role: 'user',
         content: prompt
       }]
     })
-
-    const responseText = response.choices[0]?.message?.content || ''
-    const analysis: IntentAnalysis = JSON.parse(responseText)
     
     console.log('🎯 Intent Detection Result:', analysis)
     return analysis

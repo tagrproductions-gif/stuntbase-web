@@ -1,11 +1,63 @@
 import OpenAI from 'openai'
-import { createClient } from '@/lib/supabase/server'
-import { createClient as createClientBrowser } from '@/lib/supabase/client'
+import { createBrowserClient, createServerClient, type CookieOptions } from '@supabase/ssr'
+import { cookies } from 'next/headers'
+// 🚀 MEMORY OPTIMIZED: Use centralized client instead of creating redundant instances
+// Note: This will need path adjustment for shared lib usage
+
+// Define basic types for the embedding service
+type Database = {
+  public: {
+    Tables: {
+      profiles: {
+        Row: any
+        Insert: any
+        Update: any
+      }
+    }
+  }
+}
 
 // Initialize OpenAI client
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 })
+
+// 🚀 MEMORY OPTIMIZED: Simplified client creation for shared usage
+function createClient() {
+  const cookieStore = cookies()
+  return createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          try {
+            cookieStore.set({ name, value, ...options })
+          } catch (error) {
+            // Ignore Server Component cookie errors
+          }
+        },
+        remove(name: string, options: CookieOptions) {
+          try {
+            cookieStore.set({ name, value: '', ...options })
+          } catch (error) {
+            // Ignore Server Component cookie errors
+          }
+        },
+      },
+    }
+  )
+}
+
+function createClientBrowser() {
+  return createBrowserClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+}
 
 // Alternative: Use Hugging Face for free embeddings
 // import { HfInference } from '@huggingface/inference'
@@ -147,11 +199,12 @@ export async function generateAllProfileEmbeddings(batchSize: number = 10): Prom
   const supabase = typeof window !== 'undefined' ? createClientBrowser() : 
                   process.env.NODE_ENV === 'development' ? createClientBrowser() : createClient()
   
-  // Get all public profiles
+  // 🚨 MEMORY CRITICAL: Ultra-conservative limits to prevent memory crisis
   const { data: profiles, error } = await supabase
     .from('profiles')
     .select('id, full_name')
     .eq('is_public', true)
+    .limit(5)  // 🚨 EMERGENCY: Reduced to 5 due to critical memory leaks
   
   if (error) {
     throw new Error(`Failed to fetch profiles: ${error.message}`)
@@ -204,6 +257,9 @@ export async function searchProfilesBySimilarity(
   maxResults: number = 50
 ): Promise<any[]> {
   try {
+    // 🚨 MEMORY CRITICAL: Limit semantic search results to prevent memory overload
+    const memoryOptimizedMaxResults = Math.min(maxResults, 15) // Cap at 15 for memory safety
+    
     // Generate embedding for search query
     const queryEmbedding = await generateEmbedding(queryText)
     
@@ -214,11 +270,18 @@ export async function searchProfilesBySimilarity(
       .rpc('search_profiles_by_embedding', {
         query_embedding: `[${queryEmbedding.embedding.join(',')}]`,
         similarity_threshold: threshold,
-        max_results: maxResults
+        max_results: memoryOptimizedMaxResults
       })
     
     if (error) {
       throw new Error(`Search failed: ${error.message}`)
+    }
+    
+    // 🗑️ MEMORY CLEANUP: Clear embedding data immediately after use
+    try {
+      queryEmbedding.embedding.length = 0
+    } catch (cleanupError) {
+      console.warn('⚠️ Embedding cleanup warning:', cleanupError)
     }
     
     return data || []

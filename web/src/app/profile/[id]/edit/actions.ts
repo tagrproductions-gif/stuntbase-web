@@ -9,11 +9,18 @@ export async function uploadPhotoAction(formData: FormData): Promise<{ url: stri
   const file = formData.get('file') as File
   const profileId = formData.get('profileId') as string
   
-  console.log('Server - uploadPhotoAction called for profile:', profileId, 'file:', file?.name)
+  console.log('🖼️ MEMORY OPTIMIZED: Server photo upload (compression done client-side)')
+  console.log('Server - uploadPhotoAction called for profile:', profileId, 'file:', file?.name, 'size:', (file?.size / 1024 / 1024).toFixed(2) + 'MB')
+  
   const supabase = createClient()
   
   if (!file || !profileId) {
     return { url: null, error: 'Missing file or profile ID' }
+  }
+  
+  // 🚨 MEMORY SAFEGUARD: Reject oversized files that weren't properly compressed
+  if (file.size > 5 * 1024 * 1024) { // 5MB limit
+    return { url: null, error: 'File too large. Please ensure image is compressed to under 5MB.' }
   }
   
   // Verify user owns this profile
@@ -36,7 +43,7 @@ export async function uploadPhotoAction(formData: FormData): Promise<{ url: stri
 
   const fileExt = file.name.split('.').pop()
   const fileName = `${user.id}/${profileId}/${Date.now()}.${fileExt}`
-  console.log('Server - Uploading file as:', fileName)
+  console.log('Server - Uploading pre-compressed file as:', fileName)
   
   const { data, error } = await supabase.storage
     .from('profile-photos')
@@ -47,7 +54,7 @@ export async function uploadPhotoAction(formData: FormData): Promise<{ url: stri
     return { url: null, error }
   }
 
-  console.log('Server - File uploaded successfully:', data.path)
+  console.log('🚀 MEMORY OPTIMIZED: File uploaded successfully without server-side processing:', data.path)
   const { data: { publicUrl } } = supabase.storage
     .from('profile-photos')
     .getPublicUrl(fileName)
@@ -204,7 +211,7 @@ export async function updateProfileAction(
   profileData: ProfileData, 
   skills: SkillData[], 
   certifications: CertificationData[],
-  resumeUploadResult?: { url: string; fileName: string; fileSize: number } | null
+  resumeUploadResult?: { url: string; fileName: string; fileSize: number; extractedText?: string } | null
 ) {
   console.log('Server action - updateProfileAction called')
   console.log('Server action - Profile ID:', profileId)
@@ -289,6 +296,7 @@ export async function updateProfileAction(
         resume_filename: resumeData.fileName,
         resume_file_size: resumeData.fileSize,
         resume_uploaded_at: new Date().toISOString(),
+        resume_text: resumeData.extractedText || null, // 🚀 MEMORY FIX: Store extracted text
       }),
       is_public: profileData.is_public,
       updated_at: new Date().toISOString(),

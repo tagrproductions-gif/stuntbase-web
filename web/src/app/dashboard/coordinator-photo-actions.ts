@@ -30,9 +30,17 @@ async function deleteCoordinatorPhotoFromStorage(supabase: any, photoUrl: string
 // Helper function to upload new coordinator photo
 async function uploadCoordinatorPhoto(supabase: any, userId: string, photoFile: File): Promise<string | null> {
   try {
+    // 🚨 MEMORY SAFEGUARD: Reject oversized files that weren't properly compressed client-side
+    if (photoFile.size > 5 * 1024 * 1024) { // 5MB limit
+      console.error('❌ Coordinator photo file too large. Client-side compression failed.')
+      return null
+    }
+    
     const fileExt = photoFile.name.split('.').pop()
     const fileName = `${userId}-${Date.now()}.${fileExt}`
     const filePath = `coordinators/${fileName}`
+
+    console.log('📸 MEMORY OPTIMIZED: Uploading pre-compressed coordinator photo:', filePath, 'size:', (photoFile.size / 1024 / 1024).toFixed(2) + 'MB')
 
     const { data, error } = await supabase.storage
       .from('profile-photos')
@@ -51,6 +59,7 @@ async function uploadCoordinatorPhoto(supabase: any, userId: string, photoFile: 
       .from('profile-photos')
       .getPublicUrl(filePath)
 
+    console.log('🚀 MEMORY OPTIMIZED: Coordinator photo uploaded successfully without server processing:', publicUrl)
     return publicUrl
   } catch (error) {
     console.error('Photo upload error:', error)
@@ -92,15 +101,15 @@ export async function updateCoordinatorPhotoAction(formData: FormData) {
     }
 
     // Delete old photo from storage if it exists
-    if (coordinator.profile_photo_url) {
-      await deleteCoordinatorPhotoFromStorage(supabase, coordinator.profile_photo_url)
+    if (coordinator.photo_url) {
+      await deleteCoordinatorPhotoFromStorage(supabase, coordinator.photo_url)
     }
 
     // Update coordinator record with new photo URL
     const { error: updateError } = await supabase
       .from('stunt_coordinators')
       .update({
-        profile_photo_url: newPhotoUrl,
+        photo_url: newPhotoUrl,
         updated_at: new Date().toISOString()
       })
       .eq('user_id', user.id)

@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/lib/supabase/server'
 
 export interface SearchFilters {
   location?: string
@@ -123,11 +123,20 @@ export async function searchProfiles(searchQuery: SearchQuery, supabaseClient?: 
   } = searchQuery
 
   try {
-    // Start with a comprehensive query including related data
+    // 🚀 MEMORY OPTIMIZED: Use lean query for carousel vs full query for search
+    const isCarouselRequest = sortBy === 'random' && limit <= 8 && !query && Object.keys(filters).length === 0
+    
     let queryBuilder = supabase
       .from('profiles')
-      .select(`
-        *,
+      .select(isCarouselRequest ? `
+        id, full_name, bio, gender, ethnicity, height_feet, height_inches,
+        location, primary_location_structured, reel_url,
+        profile_photos!inner (file_path, is_primary)
+      ` : `
+        id, full_name, bio, gender, ethnicity, height_feet, height_inches, weight_lbs,
+        location, primary_location_structured, secondary_location_structured, 
+        union_status, availability_status, travel_radius, reel_url, website, 
+        resume_url, phone, email, created_at, updated_at, is_public,
         profile_skills (
           id,
           skill_id,
@@ -143,6 +152,8 @@ export async function searchProfiles(searchQuery: SearchQuery, supabaseClient?: 
         )
       `, { count: 'exact' })
       .eq('is_public', true)
+      
+    console.log(isCarouselRequest ? '🎠 CAROUSEL MODE: Using lean query' : '🔍 SEARCH MODE: Using full query')
 
     // If searching within a specific project database, filter by submissions
     if (projectDatabaseId) {
@@ -296,16 +307,33 @@ export async function searchProfiles(searchQuery: SearchQuery, supabaseClient?: 
 
     console.log(`Search returned ${data?.length || 0} profiles out of ${count || 0} total`)
 
-    // Sort profile photos for consistent primary photo display
+    // 🚀 MEMORY OPTIMIZED: Process photos based on request type
     data?.forEach((profile: any) => {
       if (profile.profile_photos) {
-        profile.profile_photos.sort((a: any, b: any) => {
-          // Primary photos first
-          if (a.is_primary && !b.is_primary) return -1;
-          if (!a.is_primary && b.is_primary) return 1;
-          // Then by sort_order
-          return (a.sort_order || 0) - (b.sort_order || 0);
-        });
+        if (isCarouselRequest) {
+          // 🎠 CAROUSEL: Only keep primary photo to reduce memory usage
+          const originalCount = profile.profile_photos.length
+          const primaryPhoto = profile.profile_photos.find((p: any) => p.is_primary)
+          profile.profile_photos = primaryPhoto ? [primaryPhoto] : [profile.profile_photos[0]]
+          console.log(`🎠 Carousel: Limited ${profile.full_name} to 1 photo (was ${originalCount})`)
+        } else {
+          // 🔍 SEARCH: Sort all photos for consistent display
+          profile.profile_photos.sort((a: any, b: any) => {
+            // Primary photos first
+            if (a.is_primary && !b.is_primary) return -1;
+            if (!a.is_primary && b.is_primary) return 1;
+            // Then by sort_order
+            return (a.sort_order || 0) - (b.sort_order || 0);
+          });
+        }
+      }
+      
+      // 🗑️ MEMORY CLEANUP: Remove large text fields for carousel requests to save memory
+      if (isCarouselRequest) {
+        delete profile.bio  // Can be large
+        delete profile.resume_text  // Can be very large
+        delete profile.profile_skills  // Not needed for carousel
+        delete profile.profile_certifications  // Not needed for carousel
       }
     });
 

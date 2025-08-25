@@ -31,6 +31,19 @@ interface Profile {
   profile_photos: any[]
 }
 
+// 🎠 MEMORY OPTIMIZED: Minimal carousel profile interface
+interface CarouselProfile {
+  id: string
+  full_name: string
+  location: string
+  height_feet: number
+  height_inches: number
+  profile_photos: Array<{
+    file_path: string
+    is_primary: boolean
+  }>
+}
+
 interface ProjectDatabase {
   id: string
   project_name: string
@@ -47,7 +60,7 @@ function formatHeight(feet: number, inches: number): string {
 }
 
 // Helper function to get primary photo (same logic as profile page)
-function getPrimaryPhoto(profile: Profile) {
+function getPrimaryPhoto(profile: Profile | CarouselProfile) {
   return profile.profile_photos?.find((p: any) => p.is_primary) || profile.profile_photos?.[0];
 }
 
@@ -61,8 +74,8 @@ export default function HomePage() {
   const [typingText, setTypingText] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [showDeleteSuccess, setShowDeleteSuccess] = useState(false)
-  const [carouselProfiles, setCarouselProfiles] = useState<Profile[]>([])
-  const [displayProfiles, setDisplayProfiles] = useState<Profile[]>([])
+  const [carouselProfiles, setCarouselProfiles] = useState<CarouselProfile[]>([])
+  const [displayProfiles, setDisplayProfiles] = useState<CarouselProfile[]>([])
 
   const [showPhotos, setShowPhotos] = useState(false)
   const [photosVisible, setPhotosVisible] = useState(false)
@@ -106,20 +119,20 @@ export default function HomePage() {
 
 
 
-  // Fetch random profiles for carousel
+  // Fetch random profiles for carousel - MEMORY OPTIMIZED: minimal data only
   useEffect(() => {
     const fetchCarouselProfiles = async () => {
       try {
-        const response = await fetch('/api/search?limit=8&sortBy=random')
+        // 🚀 MEMORY FIX: Use new minimal carousel endpoint instead of full search
+        const response = await fetch('/api/carousel')
         if (response.ok) {
           const data = await response.json()
-          // Shuffle the profiles to get random order
-          const shuffled = [...(data.profiles || [])].sort(() => Math.random() - 0.5)
-          const profiles = shuffled.slice(0, 6)
+          // Data is already minimal and randomized from server
+          const profiles = data.profiles || []
           setCarouselProfiles(profiles)
           
           // Generate display profiles for carousel (this only happens once)
-          let displayProfilesArray: Profile[] = []
+          let displayProfilesArray: CarouselProfile[] = []
           if (profiles.length <= 1) {
             // If only 1 profile, duplicate it with spacing
             displayProfilesArray = [...profiles, ...profiles]

@@ -14,14 +14,16 @@ export async function queryWithStructuredFilters(parsedQuery: ParsedQuery, proje
 
   console.log('🗄️ Starting structured query with filters:', parsedQuery)
 
-  // Start with base query
+  // 🚀 MEMORY OPTIMIZED: Start with lean query - only essential data
   let query = supabase
     .from('profiles')
     .select(`
-      *, 
-      profile_photos (file_path, file_name, is_primary, sort_order),
-      profile_skills (skill_id, proficiency_level, years_experience),
-      profile_certifications (certification_id, date_obtained, expiration_date, certification_number)${projectDatabaseId ? ',project_submissions!inner(*)' : ''}
+      id, full_name, gender, ethnicity, height_feet, height_inches, weight_lbs, 
+      bio, primary_location_structured, location, union_status, availability_status,
+      travel_radius, reel_url, website, resume_url, created_at, updated_at,
+      profile_photos!inner (file_path, is_primary),
+      profile_skills (skill_id),
+      profile_certifications (certification_id)${projectDatabaseId ? ',project_submissions!inner(id)' : ''}
     `)
     .eq('is_public', true)
 
@@ -114,8 +116,8 @@ export async function queryWithStructuredFilters(parsedQuery: ParsedQuery, proje
     filtersApplied.push(`travel: ${parsedQuery.travel_radius}+`)
   }
 
-  // Limit results to prevent overwhelming the second agent (higher limit for broad searches)
-  const resultLimit = parsedQuery.broad_search ? 100 : 50
+  // 🚨 MEMORY CRITICAL: Aggressive limits to prevent memory overload
+  const resultLimit = parsedQuery.broad_search ? 25 : 15  // Further reduced for memory optimization
   query = query.limit(resultLimit)
 
   try {
@@ -198,17 +200,18 @@ export async function queryWithStructuredFilters(parsedQuery: ParsedQuery, proje
   } catch (error) {
     console.error('Structured query failed:', error)
     
-    // Fallback to simple query
+    // 🚨 MEMORY OPTIMIZED: Lean fallback query to prevent memory spikes
     const { data: fallbackProfiles, error: fallbackError } = await supabase
       .from('profiles')
       .select(`
-        *, 
-        profile_photos (file_path, file_name, is_primary, sort_order),
-        profile_skills (skill_id, proficiency_level, years_experience),
-        profile_certifications (certification_id, date_obtained, expiration_date, certification_number)
+        id, full_name, gender, ethnicity, height_feet, height_inches, weight_lbs,
+        bio, primary_location_structured, location, union_status, availability_status,
+        profile_photos (file_path, is_primary),
+        profile_skills (skill_id),
+        profile_certifications (certification_id)
       `)
       .eq('is_public', true)
-      .limit(20)
+      .limit(10)  // Further reduced fallback limit for critical memory optimization
 
     if (fallbackError) {
       throw fallbackError

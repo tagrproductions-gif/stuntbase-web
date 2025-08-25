@@ -347,7 +347,7 @@ export interface Database {
           id: string
           user_id: string
           coordinator_name: string
-          profile_photo_url: string | null
+          photo_url: string | null
           created_at: string
           updated_at: string
         }
@@ -355,7 +355,7 @@ export interface Database {
           id?: string
           user_id: string
           coordinator_name: string
-          profile_photo_url?: string | null
+          photo_url?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -363,7 +363,7 @@ export interface Database {
           id?: string
           user_id?: string
           coordinator_name?: string
-          profile_photo_url?: string | null
+          photo_url?: string | null
           created_at?: string
           updated_at?: string
         }

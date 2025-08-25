@@ -8,7 +8,7 @@ import { generateCastingResponse } from '@/lib/agents/casting-assistant'
 import { detectUserIntent } from '@/lib/agents/intent-detection'
 import { generateConversationalResponse } from '@/lib/agents/conversational-agent'
 import { detectNameQuery, searchProfilesByName, generateNameBasedResponse } from '@/lib/agents/name-detector'
-import { analyzeEligibleResumes } from '@/lib/agents/resume-analyzer'
+import { analyzeEligibleResumes } from '@/lib/agents/resume-analyzer' // 🚀 RE-ENABLED: Safe with stored text only
 
 // Helper function to retry API calls with exponential backoff
 async function retryApiCall<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
@@ -37,6 +37,13 @@ async function retryApiCall<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T>
 }
 
 export async function POST(request: NextRequest) {
+  // Memory monitoring (informational only)
+  const memoryUsage = process.memoryUsage()
+  const memoryMB = Math.round(memoryUsage.rss / 1024 / 1024)
+  console.log(`🧠 Memory before chat: ${memoryMB}MB`)
+  
+  // Memory limit removed per user request
+
   // Check authentication first
   const supabase = createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -155,20 +162,9 @@ export async function POST(request: NextRequest) {
         filtersApplied: queryResult.filtersApplied
       })
       
-      // STAGE 3: Resume analysis for top performers (tier-aware)
-      console.log('📄 AGENT 3: Analyzing resumes...')
-      let resumeAnalyses: any[] = []
-      try {
-        resumeAnalyses = await analyzeEligibleResumes(queryResult.profiles, message)
-        console.log('✅ AGENT 3 Result:', {
-          totalProfiles: queryResult.profiles.length,
-          analyzedCount: resumeAnalyses.filter(r => r.analyzed).length,
-          eligibleCount: resumeAnalyses.length
-        })
-      } catch (resumeError) {
-        console.error('⚠️ Resume analysis failed, continuing without it:', resumeError)
-        resumeAnalyses = [] // Continue without resume analysis
-      }
+      // STAGE 3: Resume analysis for TOP 2 profiles using stored text (MEMORY SAFE)
+      console.log('📄 AGENT 3: Analyzing resumes for top 2 profiles using stored text...')
+      const resumeAnalyses = await analyzeEligibleResumes(queryResult.profiles.slice(0, 2), message)
       
       // STAGE 4: Generate enhanced casting assistant response
       console.log('🎭 AGENT 2: Generating enhanced casting response...')
@@ -178,7 +174,7 @@ export async function POST(request: NextRequest) {
         profileCount: castingResponse.profileIds.length
       })
       
-      // Get ALL matching profiles for frontend, with AI-selected ones first in AI's preferred order
+      // 🚀 MEMORY OPTIMIZED: Get matching profiles with memory-conscious processing
       const aiSelectedProfiles = castingResponse.profileIds.map(id => 
         queryResult.profiles.find(p => p.id === id)
       ).filter(Boolean) // Remove any undefined entries
@@ -189,9 +185,17 @@ export async function POST(request: NextRequest) {
       // Show AI-selected profiles first (in AI's order), then remaining matches
       const matchedProfiles = [...aiSelectedProfiles, ...remainingProfiles]
       
+      // 🗑️ MEMORY CLEANUP: Clear large intermediate arrays immediately
+      try {
+        queryResult.profiles.length = 0 // Clear the large original array
+        castingResponse.profileIds.length = 0 // Clear AI response IDs
+      } catch (cleanupError) {
+        console.warn('⚠️ Profile array cleanup warning:', cleanupError)
+      }
+      
       console.log('🎉 SEARCH PIPELINE COMPLETE:', {
         totalProcessed: queryResult.totalMatched,
-        aiRecommendations: castingResponse.profileIds.length,
+        aiRecommendations: aiSelectedProfiles.length,
         totalProfilesShown: matchedProfiles.length,
         confidence: parsedQuery.confidence
       })
@@ -257,5 +261,47 @@ export async function POST(request: NextRequest) {
       error: error instanceof Error ? error.message : 'Unknown error',
       pipeline: 'two-agent-failed'
     }, { status: 500 })
+  } finally {
+    // 🚨 EMERGENCY: Force cleanup after every chat request
+    try {
+      if (typeof global !== 'undefined' && global.gc) {
+        global.gc()
+        const afterMemory = Math.round(process.memoryUsage().rss / 1024 / 1024)
+        console.log(`🗑️ Memory after chat cleanup: ${afterMemory}MB`)
+      }
+      
+      // 🆕 MEMORY FIX: Periodic require.cache cleanup to prevent module accumulation
+      const requestCount = ((global as any).chatRequestCount || 0) + 1
+      ;(global as any).chatRequestCount = requestCount
+      
+      // Every 25 chat requests, clear non-essential modules from cache
+      if (requestCount % 25 === 0) {
+        console.log(`🧹 Periodic cache cleanup (request #${requestCount})...`)
+        let clearedCount = 0
+        
+        Object.keys(require.cache).forEach(key => {
+          // Clear heavy modules that can be reloaded when needed
+          if (key.includes('pdf-parse') || 
+              key.includes('openai') || 
+              key.includes('anthropic') ||
+              (key.includes('node_modules') && 
+               (key.includes('canvas') || key.includes('sharp') || key.includes('jimp')))) {
+            delete require.cache[key]
+            clearedCount++
+          }
+        })
+        
+        console.log(`🧹 Cleared ${clearedCount} cached modules to free memory`)
+        
+        // Force additional garbage collection after cache cleanup
+        if (global.gc) {
+          global.gc()
+          console.log(`🗑️ Additional GC after cache cleanup`)
+        }
+      }
+      
+    } catch (cleanupError) {
+      console.warn('Memory cleanup failed:', cleanupError)
+    }
   }
 }

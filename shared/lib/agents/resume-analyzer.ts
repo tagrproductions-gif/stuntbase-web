@@ -1,6 +1,7 @@
 import OpenAI from 'openai'
 import { createClient } from '@/lib/supabase/server'
-import pdfParse from 'pdf-parse'
+// 🚨 MEMORY FIX: Conditional import to prevent loading pdf-parse when disabled
+// import pdfParse from 'pdf-parse' // MOVED TO CONDITIONAL IMPORT
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
@@ -191,6 +192,9 @@ async function extractPDFText(resumeUrl: string): Promise<string> {
     // Get PDF content as buffer
     const arrayBuffer = await response.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
+    
+    // 🚨 MEMORY FIX: Dynamic import to prevent loading pdf-parse unless actually needed
+    const pdfParse = (await import('pdf-parse')).default
     
     // Parse PDF and extract text
     const pdfData = await pdfParse(buffer)

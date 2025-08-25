@@ -100,9 +100,15 @@ export async function getProfile(profileId: string) {
 export async function getProfileByUserId(userId: string) {
   const supabase = createClient()
   
+  // 🚀 MEMORY FIX: Exclude massive resume_text field
   const { data, error } = await supabase
     .from('profiles')
-    .select('*')
+    .select(`
+      id, full_name, bio, gender, ethnicity, height_feet, height_inches, weight_lbs,
+      location, primary_location_structured, secondary_location_structured, 
+      union_status, availability_status, travel_radius, reel_url, website, 
+      resume_url, phone, email, created_at, updated_at, is_public, user_id
+    `)
     .eq('user_id', userId)
     .single()
 
@@ -196,8 +202,15 @@ export async function updateProfileCertifications(profileId: string, certificati
 export async function uploadProfilePhoto(file: File, profileId: string): Promise<{ url: string | null; error: any }> {
   const supabase = createClient()
   
+  // 🚨 MEMORY SAFEGUARD: Reject oversized files that weren't properly compressed client-side
+  if (file.size > 5 * 1024 * 1024) { // 5MB limit
+    return { url: null, error: 'File too large. Please ensure image is compressed to under 5MB.' }
+  }
+  
   const fileExt = file.name.split('.').pop()
   const fileName = `${profileId}/${Date.now()}.${fileExt}`
+  
+  console.log('📸 MEMORY OPTIMIZED: Uploading pre-compressed profile photo:', fileName, 'size:', (file.size / 1024 / 1024).toFixed(2) + 'MB')
   
   const { data, error } = await supabase.storage
     .from('profile-photos')
@@ -211,6 +224,7 @@ export async function uploadProfilePhoto(file: File, profileId: string): Promise
     .from('profile-photos')
     .getPublicUrl(fileName)
 
+  console.log('🚀 MEMORY OPTIMIZED: Profile photo uploaded successfully without server processing:', publicUrl)
   return { url: publicUrl, error: null }
 }
 

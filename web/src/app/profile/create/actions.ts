@@ -9,7 +9,7 @@ export async function createProfileAction(
   profileData: ProfileData, 
   skills: SkillData[], 
   certifications: CertificationData[], 
-  resumeUploadResult?: { url: string; fileName: string; fileSize: number } | null
+  resumeUploadResult?: { url: string; fileName: string; fileSize: number; extractedText?: string } | null
 ) {
   const supabase = createClient()
 
@@ -59,11 +59,12 @@ export async function createProfileAction(
       website: profileData.website || null,
       imdb_url: profileData.imdb_url || null,
       reel_url: profileData.reel_url || null,
-      // Resume data
+      // Resume data with extracted text
       resume_url: resumeData?.url || null,
       resume_filename: resumeData?.fileName || null,
       resume_file_size: resumeData?.fileSize || null,
       resume_uploaded_at: resumeData ? new Date().toISOString() : null,
+      resume_text: resumeData?.extractedText || null, // 🚀 MEMORY FIX: Store extracted text
       availability_status: profileData.availability_status || null,
       // Convert NaN to null for number fields
       height_feet: isNaN(profileData.height_feet as number) ? null : profileData.height_feet,

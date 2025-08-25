@@ -33,16 +33,19 @@ export default async function DashboardPage() {
   const { data: profile } = await supabase
     .from('profiles')
     .select(`
-      *,
-      profile_photos (*)
+      id, full_name, bio, gender, ethnicity, height_feet, height_inches, weight_lbs,
+      location, primary_location_structured, secondary_location_structured, 
+      union_status, availability_status, travel_radius, reel_url, website, 
+      resume_url, phone, email, created_at, updated_at, is_public, user_id,
+      profile_photos (id, file_path, file_name, is_primary, sort_order)
     `)
     .eq('user_id', user.id)
     .single()
 
-  // Check if user is a coordinator
+  // Check if user is a coordinator (🚀 MEMORY FIX: specific fields only)
   const { data: coordinator } = await supabase
     .from('stunt_coordinators')
-    .select('*')
+    .select('id, user_id, coordinator_name, company_name, phone, email, bio, photo_url, created_at')
     .eq('user_id', user.id)
     .single()
 
@@ -71,10 +74,10 @@ export default async function DashboardPage() {
                       className="object-cover rounded-xl shadow-lg"
                     />
                   </div>
-                ) : coordinator?.profile_photo_url ? (
+                ) : coordinator?.photo_url ? (
                   <div className="relative w-32 h-40 sm:w-36 sm:h-48 lg:w-40 lg:h-52">
                     <Image
-                      src={coordinator.profile_photo_url}
+                      src={coordinator.photo_url}
                       alt={coordinator.coordinator_name || 'Coordinator'}
                       fill
                       className="object-cover rounded-xl shadow-lg"
@@ -91,7 +94,7 @@ export default async function DashboardPage() {
                   <div className="w-32 sm:w-36 lg:w-40">
                     <CoordinatorPhotoChange 
                       coordinatorId={coordinator.id} 
-                      hasExistingPhoto={!!coordinator.profile_photo_url}
+                      hasExistingPhoto={!!coordinator.photo_url}
                     />
                   </div>
                 )}
@@ -119,19 +122,14 @@ export default async function DashboardPage() {
               {profile && (
                 <div className="flex flex-wrap justify-center sm:justify-start gap-4 mt-4">
                   <div className="text-center sm:text-left">
-                    <p className="text-lg font-semibold text-foreground">{viewStats?.total_views || profile?.view_count || 0}</p>
+                    <p className="text-lg font-semibold text-foreground">{viewStats?.total_views || 0}</p>
                     <p className="text-xs text-muted-foreground">Profile Views</p>
                   </div>
                   <div className="text-center sm:text-left">
                     <p className="text-lg font-semibold text-foreground">{profile.is_public ? 'Public' : 'Private'}</p>
                     <p className="text-xs text-muted-foreground">Visibility</p>
                   </div>
-                  {profile.experience_years && (
-                    <div className="text-center sm:text-left">
-                      <p className="text-lg font-semibold text-foreground">{profile.experience_years}y</p>
-                      <p className="text-xs text-muted-foreground">Experience</p>
-                    </div>
-                  )}
+
                 </div>
               )}
             </div>

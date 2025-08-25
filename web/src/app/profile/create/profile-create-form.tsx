@@ -51,7 +51,8 @@ export function ProfileCreateForm({ user }: ProfileCreateFormProps) {
               resumeUploadResult = {
                 url: uploadResult.url,
                 fileName: uploadResult.fileName,
-                fileSize: uploadResult.fileSize
+                fileSize: uploadResult.fileSize,
+                extractedText: uploadResult.extractedText
               }
               console.log('Create form - Resume uploaded:', resumeUploadResult)
             } else {

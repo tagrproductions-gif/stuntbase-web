@@ -7,6 +7,56 @@ export interface NameQuery {
   confidence: number
 }
 
+// 🚀 MEMORY FIX: Move Sets to module level to prevent recreation on every request
+// These are created once when module loads, not on every function call
+const NON_NAME_WORDS = new Set([
+  'performers', 'people', 'talent', 'actors', 'stunt', 'fighter', 'fighters', 
+  'driver', 'drivers', 'swimmer', 'swimmers', 'climber', 'climbers',
+  'atlanta', 'los', 'angeles', 'new', 'york', 'chicago', 'miami', 'dallas',
+  'male', 'female', 'man', 'woman', 'men', 'women', 'guy', 'guys', 'girl', 'girls',
+  'available', 'looking', 'need', 'want', 'find', 'search', 'show', 'list',
+  'tall', 'short', 'young', 'old', 'experienced', 'professional'
+])
+
+const COMMON_WORDS = new Set([
+  'what', 'is', 'the', 'phone', 'number', 'email', 'contact', 'info', 'for',
+  'tell', 'me', 'about', 'show', 'find', 'get', 'who', 'details', 'profile',
+  'can', 'you', 'please', 'i', 'need', 'want', 'looking', 'search',
+  'how', 'where', 'when', 'why', 'does', 'have', 'know', 'like', 'on',
+  'resume', 'cv', 'experience', 'work', 'history', 'background',
+  ...Array.from(NON_NAME_WORDS) // Include our non-name words
+])
+
+// Patterns that indicate name-based queries (looking up specific people in database)
+const NAME_QUERY_PATTERNS = [
+  // Direct name questions
+  /what\s+is\s+([a-z\s]+?)['']?s?\s+(phone|email|contact|number|info)/i,
+  /tell\s+me\s+about\s+([a-z\s]+)/i,
+  /show\s+me\s+([a-z\s]+?)['']?s?\s+(profile|info|details)/i,
+  /find\s+([a-z\s]+?)['']?s?\s+(profile|contact|info)/i,
+  /who\s+is\s+([a-z\s]+)/i,
+  /get\s+([a-z\s]+?)['']?s?\s+(phone|email|contact|details)/i,
+  /contact\s+(info|details)?\s+for\s+([a-z\s]+)/i,
+  /([a-z\s]+?)['']?s?\s+(phone|email|contact)\s+(number|info|details)/i,
+  // Resume-specific patterns
+  /what\s+is\s+on\s+([a-z\s]+?)['']?s?\s+(resume|cv)/i,
+  /([a-z\s]+?)['']?s?\s+(resume|cv)/i,
+  /show\s+me\s+([a-z\s]+?)['']?s?\s+(resume|cv|experience)/i,
+  // More specific database lookup patterns
+  /do\s+you\s+have\s+([a-z\s]+)\s+in\s+(your\s+)?(database|system)/i,
+  /is\s+([a-z\s]+)\s+in\s+(your\s+)?(database|system)/i,
+  /look\s+up\s+([a-z\s]+)/i,
+  /search\s+for\s+([a-z\s]+)/i,
+  /([a-z\s]+)\s+profile/i,
+  // General patterns for names in questions
+  /what\s+(about|is|does)\s+([a-z\s]+?)\s+(do|have|know|like)/i,
+  /how\s+(is|does)\s+([a-z\s]+)/i,
+  /where\s+(is|does)\s+([a-z\s]+)/i,
+]
+
+// Separate pattern for detecting standalone names (more restrictive)
+const STANDALONE_NAME_PATTERN = /^([a-z]+\s+[a-z]+(?:\s+[a-z]+)*)$/i
+
 /**
  * Lightweight name detection using regex patterns and keywords
  * This bypasses AI processing for obvious name-based queries
@@ -14,53 +64,13 @@ export interface NameQuery {
 export function detectNameQuery(message: string): NameQuery {
   const lowerMessage = message.toLowerCase()
   
-  // Words that are clearly NOT names (exclude from name detection)
-  const nonNameWords = new Set([
-    'performers', 'people', 'talent', 'actors', 'stunt', 'fighter', 'fighters', 
-    'driver', 'drivers', 'swimmer', 'swimmers', 'climber', 'climbers',
-    'atlanta', 'los', 'angeles', 'new', 'york', 'chicago', 'miami', 'dallas',
-    'male', 'female', 'man', 'woman', 'men', 'women', 'guy', 'guys', 'girl', 'girls',
-    'available', 'looking', 'need', 'want', 'find', 'search', 'show', 'list',
-    'tall', 'short', 'young', 'old', 'experienced', 'professional'
-  ])
-
-  // Patterns that indicate name-based queries (looking up specific people in database)
-  const nameQueryPatterns = [
-    // Direct name questions
-    /what\s+is\s+([a-z\s]+?)['']?s?\s+(phone|email|contact|number|info)/i,
-    /tell\s+me\s+about\s+([a-z\s]+)/i,
-    /show\s+me\s+([a-z\s]+?)['']?s?\s+(profile|info|details)/i,
-    /find\s+([a-z\s]+?)['']?s?\s+(profile|contact|info)/i,
-    /who\s+is\s+([a-z\s]+)/i,
-    /get\s+([a-z\s]+?)['']?s?\s+(phone|email|contact|details)/i,
-    /contact\s+(info|details)?\s+for\s+([a-z\s]+)/i,
-    /([a-z\s]+?)['']?s?\s+(phone|email|contact)\s+(number|info|details)/i,
-    // Resume-specific patterns
-    /what\s+is\s+on\s+([a-z\s]+?)['']?s?\s+(resume|cv)/i,
-    /([a-z\s]+?)['']?s?\s+(resume|cv)/i,
-    /show\s+me\s+([a-z\s]+?)['']?s?\s+(resume|cv|experience)/i,
-    // More specific database lookup patterns
-    /do\s+you\s+have\s+([a-z\s]+)\s+in\s+(your\s+)?(database|system)/i,
-    /is\s+([a-z\s]+)\s+in\s+(your\s+)?(database|system)/i,
-    /look\s+up\s+([a-z\s]+)/i,
-    /search\s+for\s+([a-z\s]+)/i,
-    /([a-z\s]+)\s+profile/i,
-    // General patterns for names in questions
-    /what\s+(about|is|does)\s+([a-z\s]+?)\s+(do|have|know|like)/i,
-    /how\s+(is|does)\s+([a-z\s]+)/i,
-    /where\s+(is|does)\s+([a-z\s]+)/i,
-  ]
-  
-  // Separate pattern for detecting standalone names (more restrictive)
-  const standaloneNamePattern = /^([a-z]+\s+[a-z]+(?:\s+[a-z]+)*)$/i
-  
   // Check if message looks like a standalone name, but exclude non-name words
   let potentialStandaloneName = null
-  const standaloneMatch = message.match(standaloneNamePattern)
+  const standaloneMatch = message.match(STANDALONE_NAME_PATTERN)
   if (standaloneMatch) {
     const candidate = standaloneMatch[1].trim()
     const candidateWords = candidate.toLowerCase().split(/\s+/)
-    const hasNonNameWord = candidateWords.some(word => nonNameWords.has(word))
+    const hasNonNameWord = candidateWords.some(word => NON_NAME_WORDS.has(word))
     
     if (!hasNonNameWord && candidateWords.length >= 2) {
       potentialStandaloneName = candidate
@@ -81,7 +91,7 @@ export function detectNameQuery(message: string): NameQuery {
   hasContactRequest = contactKeywords.some(keyword => lowerMessage.includes(keyword))
   
   // Try to extract names using patterns
-  for (const pattern of nameQueryPatterns) {
+  for (const pattern of NAME_QUERY_PATTERNS) {
     const match = message.match(pattern)
     if (match) {
       // Extract the captured name group - check all groups, not just 1 and 2
@@ -92,7 +102,7 @@ export function detectNameQuery(message: string): NameQuery {
           // Basic validation: name should be 2-50 chars and look like a name
           // Also exclude common non-name words
           const nameWords = nameMatch.toLowerCase().split(/\s+/)
-          const hasNonNameWord = nameWords.some(word => nonNameWords.has(word))
+          const hasNonNameWord = nameWords.some(word => NON_NAME_WORDS.has(word))
           
           // Additional check: should have at least one capital letter (indicating a proper name)
           const hasCapitalLetter = /[A-Z]/.test(nameMatch)
@@ -120,21 +130,13 @@ export function detectNameQuery(message: string): NameQuery {
   if (extractedNames.length === 0) {
     // Find potential names (capitalized words, not common words)
     const words = message.split(/\s+/)
-    const commonWords = new Set([
-      'what', 'is', 'the', 'phone', 'number', 'email', 'contact', 'info', 'for',
-      'tell', 'me', 'about', 'show', 'find', 'get', 'who', 'details', 'profile',
-      'can', 'you', 'please', 'i', 'need', 'want', 'looking', 'search',
-      'how', 'where', 'when', 'why', 'does', 'have', 'know', 'like', 'on',
-      'resume', 'cv', 'experience', 'work', 'history', 'background',
-      ...Array.from(nonNameWords) // Include our non-name words
-    ])
     
     let potentialName = ''
     for (const word of words) {
       const cleanWord = word.replace(/[^\w]/g, '')
       if (cleanWord.length > 1 && 
           /^[A-Z][a-z]+$/.test(cleanWord) && 
-          !commonWords.has(cleanWord.toLowerCase())) {
+          !COMMON_WORDS.has(cleanWord.toLowerCase())) {
         potentialName += (potentialName ? ' ' : '') + cleanWord
       } else if (potentialName) {
         // End of potential name sequence
@@ -245,8 +247,8 @@ export async function searchProfilesByName(names: string[], projectDatabaseId?: 
       query = query.or(nameConditions.join(','))
     }
     
-    // Limit results to prevent overwhelming response
-    query = query.limit(10)
+    // Limit results to prevent overwhelming response and reduce memory usage
+    query = query.limit(8)  // Reduced for memory optimization
     
     const { data: profiles, error } = await query
     

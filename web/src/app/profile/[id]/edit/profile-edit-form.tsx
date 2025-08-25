@@ -103,7 +103,8 @@ export function ProfileEditForm({ profile }: ProfileEditFormProps) {
               resumeUploadResult = {
                 url: uploadResult.url,
                 fileName: uploadResult.fileName,
-                fileSize: uploadResult.fileSize
+                fileSize: uploadResult.fileSize,
+                extractedText: uploadResult.extractedText
               }
               console.log('Edit form - Resume uploaded:', resumeUploadResult)
             } else {
